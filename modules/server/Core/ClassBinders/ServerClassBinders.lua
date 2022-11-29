@@ -8,6 +8,8 @@ local ClassBinder = require("ClassBinder")
 local ClassBinderProvider = require("ClassBinderProvider")
 
 return ClassBinderProvider.new(function(self)
+    self:AddClassBinder(ClassBinder.new("Portal", require("PortalTeleport")))
+
     self:AddClassBinder(ClassBinder.new("Seat", require("Seat"))) -- Binder name, class
     self:AddClassBinder(ClassBinder.new("IdleAnimation", require("IdleAnimation")))
 end)

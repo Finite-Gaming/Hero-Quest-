@@ -1,4 +1,4 @@
---- Class meant to be bound to a character/npc that plays its idle animation
+--- Class meant to be bound to a rig/npc that plays its idle animation
 -- @classmod IdleAnimation
 -- @author frick
 
@@ -13,8 +13,9 @@ function IdleAnimation.new(obj)
     local self = setmetatable(BaseObject.new(obj), IdleAnimation)
 
     self._idleAnimation = self._obj.IdleAnimation
-    self._humanoid = self._obj.Humanoid
-    self._animationTrack = self._maid:AddTask(self._humanoid:LoadAnimation(self._idleAnimation))
+    self._animationLoader = self._obj:FindFirstChild("Humanoid") or self._obj:FindFirstChild("AnimationController")
+
+    self._animationTrack = self._maid:AddTask(self._animationLoader:LoadAnimation(self._idleAnimation))
     self._maid:AddTask(function()
         self._animationTrack:Stop()
     end)
