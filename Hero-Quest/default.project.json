@@ -1,0 +1,34 @@
+{
+  "name": "overflow",
+  "tree": {
+    "$className": "DataModel",
+
+    "ReplicatedStorage": {
+      "Modules": {
+        "$path": "modules/shared"
+      },
+      "Compliance": {
+        "$path": "Compliance"
+      }
+    },
+
+    "ServerScriptService": {
+        "Scripts": {
+          "$path": "scripts/server"
+        },
+        "Modules": {
+          "$path": "modules/server"
+        }
+    },
+
+    "StarterPlayer": {
+      "$className": "StarterPlayer",
+      "StarterPlayerScripts": {
+        "$className": "StarterPlayerScripts",
+        "Main": {
+          "$path": "scripts/client"
+        }
+      }
+    }
+  }
+}
