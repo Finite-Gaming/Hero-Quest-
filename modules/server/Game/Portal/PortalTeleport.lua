@@ -1,5 +1,5 @@
---- Initializes and provides server class binders
--- @classmod ServerClassBinders
+---
+-- @classmod PortalTeleport
 -- @author Hexcede probably, frick
 
 local require = require(game:GetService("ReplicatedStorage"):WaitForChild("Compliance"))

@@ -1,6 +1,6 @@
---- Does cool things
+---
 -- @classmod BaseService
--- @author frick
+-- @author
 
 local require = require(game:GetService("ReplicatedStorage"):WaitForChild("Compliance"))
 

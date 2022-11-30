@@ -1,0 +1,5 @@
+return {
+    SET_SETTING_REMOTE_FUNCTION_NAME = "SetSetting";
+    GET_SETTING_REMOTE_FUNCTION_NAME = "GetSetting";
+    GET_SETTINGS_REMOTE_FUNCTION_NAME = "GetSettings";
+}
