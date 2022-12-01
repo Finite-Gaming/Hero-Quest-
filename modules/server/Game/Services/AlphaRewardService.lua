@@ -2,15 +2,14 @@
 -- @classmod AlphaRewardService
 -- @author unknown, frick
 
-local cRequire = require(game:GetService("ReplicatedStorage"):WaitForChild("Compliance"))
+local require = require(game:GetService("ReplicatedStorage"):WaitForChild("Compliance"))
 
 local ServerScriptService = game:GetService("ServerScriptService")
 local Players = game:GetService("Players")
 local BadgeService = game:GetService("BadgeService")
 
-local GameModeManager = cRequire("GameModeManager")
-
-local UserData = require(ServerScriptService:WaitForChild("PlayerData"):WaitForChild("UserData"))
+local GameModeManager = require("GameModeManager")
+local UserData = require("UserData")
 
 local ALPHA_BADGE_ID = 2126509640
 

@@ -2,14 +2,11 @@
 -- @classmod SettingsService
 -- @author unknown, frick
 
-local cRequire = require(game:GetService("ReplicatedStorage"):WaitForChild("Compliance"))
+local require = require(game:GetService("ReplicatedStorage"):WaitForChild("Compliance"))
 
-local ServerScriptService = game:GetService("ServerScriptService")
-
-local Network = cRequire("Network")
-local SettingsServiceConstants = cRequire("SettingsServiceConstants")
-
-local UserData = require(ServerScriptService.PlayerData.UserData) -- TODO: Move this to use Compliance
+local Network = require("Network")
+local SettingsServiceConstants = require("SettingsServiceConstants")
+local UserData = require("UserData")
 
 local SettingsService = {}
 

@@ -2,9 +2,9 @@
 -- @classmod SpawnZoneHandler
 -- @author unknown, frick
 
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local require = require(game:GetService("ReplicatedStorage"):WaitForChild("Compliance"))
 
-local Zones = require(ReplicatedStorage:WaitForChild("Zones"))
+local Zones = require("Zones")
 
 local SpawnZoneHandler = {}
 

@@ -2,7 +2,7 @@
 -- @classmod BaseService
 -- @author
 
-local cRequire = require(game:GetService("ReplicatedStorage"):WaitForChild("Compliance"))
+local require = require(game:GetService("ReplicatedStorage"):WaitForChild("Compliance"))
 
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
@@ -12,7 +12,9 @@ local MessagingService = game:GetService("MessagingService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TeleportService = game:GetService("TeleportService")
 
-local PartyHandlerConstants = cRequire("PartyHandlerConstants")
+local PartyHandlerConstants = require("PartyHandlerConstants")
+-- List of all dungeon information
+local DUNGEONS = require("DungeonEntries")
 
 -- Configuration
 local partyExpirationTime = PartyHandlerConstants.PARTY_EXPIRATION_TIME -- Specifies how many seconds a party will last for
@@ -47,9 +49,6 @@ local partyPlayerRemoved = partyRemotes:WaitForChild("PartyPlayerRemoved") -- Fi
 
 -- MemoryStore
 local partyQueue = MemoryStoreService:GetQueue("Parties", 1)
-
--- List of all dungeon information
-local DUNGEONS = require(ReplicatedStorage:WaitForChild("DungeonEntries"))
 
 export type Session = {
 	AccessCode: string,

@@ -2,7 +2,7 @@
 -- @classmod BaseService
 -- @author
 
-local cRequire = require(game:GetService("ReplicatedStorage"):WaitForChild("Compliance"))
+local require = require(game:GetService("ReplicatedStorage"):WaitForChild("Compliance"))
 
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
@@ -10,23 +10,23 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local CollectionService = game:GetService("CollectionService")
 
-local CombatHandlerConstants = cRequire("CombatHandlerConstants")
+local CombatClient = require("CombatClient")
+local CombatConstants = require("CombatConstants")
+local Network = require("Network")
+local CombatHandlerConstants = require("CombatHandlerConstants")
+local PlayerStats = require("PlayerStats")
 
-local remotes = ReplicatedStorage:WaitForChild("Remotes")
-local combat = remotes:WaitForChild("Combat")
-local useWeapon = combat:WaitForChild("UseWeapon")
-local equip = combat:WaitForChild("Equip")
---local attack = combat:WaitForChild("Attack")
-local onDummyHit = combat:WaitForChild("DummyAttack")
-local onTargetDamaged = combat:WaitForChild("TargetDamaged")
-local onTargetHealed = combat:WaitForChild("TargetHealed")
+local combat = Network:GetRemoteEvent(CombatConstants.COMBAT_CLIENT_REMOTE_EVENT_NAME)
+local equip = Network:GetRemoteFunction(CombatConstants.EQUIP_REMOTE_FUNCTION_NAME)
+local useWeapon = Network:GetRemoteFunction(CombatConstants.USE_WEAPON_REMOTE_FUNCTION_NAME)
+--local attack = Network:GetRemoteFunction(CombatConstants.ATTACK_REMOTE_FUNCTION_NAME)
+local onDummyHit = Network:GetRemoteEvent(CombatConstants.DUMMY_ATTACK_REMOTE_EVENT_NAME)
+local onTargetDamaged = Network:GetRemoteEvent(CombatConstants.TARGET_DAMAGED_REMOTE_EVENT_NAME)
+local onTargetHealed = Network:GetRemoteEvent(CombatConstants.TARGET_HEALED_REMOTE_EVENT_NAME)
 
 local animations = ReplicatedStorage:WaitForChild("Animations")
 local weaponAnimations = animations:WaitForChild("Weapon")
 local genericWeaponAnimations = weaponAnimations:WaitForChild("Generic")
-
-local CombatClient = require(ReplicatedStorage:WaitForChild("CombatClient"))
-local PlayerStats = require(ReplicatedStorage:WaitForChild("PlayerStats"))
 
 -- TODO: Generalize for dungeons as well
 local lobby = workspace:WaitForChild("Lobby")

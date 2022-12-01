@@ -3,20 +3,19 @@
 -- @author unknown, frick
 -- TODO: Refactor for Compliance
 
-local cRequire = require(game:GetService("ReplicatedStorage"):WaitForChild("Compliance"))
+local require = require(game:GetService("ReplicatedStorage"):WaitForChild("Compliance"))
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local armorSetsFolder = ReplicatedStorage:WaitForChild("ArmorSets")
 
-local ArmorHandlerConstants = cRequire("ArmorHandlerConstants")
+local ArmorService = require("ArmorService")
+local ArmorHandlerConstants = require("ArmorHandlerConstants")
+local ArmorSkins = require("ArmorConstants")
 
-local ArmorSkins = require(game.ServerScriptService.Skins.Armor)
 -- Configuration
 local defaultArmorSet = ArmorHandlerConstants.DEFAULT_ARMOR_SET
 
--- Require armor module
-local ArmorService = cRequire("ArmorService")
 local armorSets = ArmorService:GenerateArmorSets(armorSetsFolder)
 
 local ArmorHandler = {}
