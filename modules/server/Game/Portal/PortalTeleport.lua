@@ -1,4 +1,4 @@
----
+--- Teleports players to a dungeon
 -- @classmod PortalTeleport
 -- @author Hexcede probably, frick
 

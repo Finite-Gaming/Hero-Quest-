@@ -1,4 +1,4 @@
----
+--- Loads players characters when they have finished loading the games assets
 -- @classmod CharacterService
 -- @author unknown, frick
 
@@ -11,6 +11,7 @@ local CharacterServiceConstants = require("CharacterServiceConstants")
 
 local CharacterService = {}
 
+-- Initialize remote function
 function CharacterService:Init()
     self._loadedPlayers = {}
     self._playerLoaded = Instance.new("BindableEvent")
@@ -24,6 +25,7 @@ function CharacterService:Init()
     end
 end
 
+-- Binds connections to player
 function CharacterService:_handlePlayerAdded(player)
 	while not self._loadedPlayers[player] do
 		self._playerLoaded.Event:Wait()
@@ -35,6 +37,7 @@ function CharacterService:_handlePlayerAdded(player)
     end)
 end
 
+-- Respawns player after they die
 function CharacterService:_handleCharacterAdded(player, character)
     if not character then
         return

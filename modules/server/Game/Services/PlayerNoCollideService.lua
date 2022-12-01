@@ -1,4 +1,4 @@
----
+--- Disallows players colliding with eachother
 -- @classmod SettingsService
 -- @author unknown, frick
 
@@ -7,6 +7,7 @@ local PhysicsService = game:GetService("PhysicsService")
 
 local PlayerNoCollideService = {}
 
+-- Make connections for player join/character spawn
 function PlayerNoCollideService:Init()
     Players.PlayerAdded:Connect(function(player)
         player.CharacterAdded:Connect(function(character)
@@ -20,6 +21,7 @@ function PlayerNoCollideService:Init()
     end)
 end
 
+-- Add the part to the "Player" collision group so they cant collide with eachother
 function PlayerNoCollideService:_handlePart(part)
     if part:IsA("BasePart") then
         PhysicsService:SetPartCollisionGroup(part, "Player")

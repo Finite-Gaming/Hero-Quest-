@@ -1,4 +1,4 @@
----
+--- Moves any player that leaves spawn
 -- @classmod SpawnZoneHandler
 -- @author unknown, frick
 
@@ -8,6 +8,7 @@ local Zones = require(ReplicatedStorage:WaitForChild("Zones"))
 
 local SpawnZoneHandler = {}
 
+-- Teleports the player back to spawn when they leave the spawn zone
 function SpawnZoneHandler:Init()
     local lobbySpawn = workspace.Lobby.Spawn
 

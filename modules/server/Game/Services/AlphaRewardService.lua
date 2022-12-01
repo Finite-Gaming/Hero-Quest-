@@ -1,4 +1,4 @@
----
+--- Rewards players for playing in alpha
 -- @classmod AlphaRewardService
 -- @author unknown, frick
 
@@ -16,6 +16,7 @@ local ALPHA_BADGE_ID = 2126509640
 
 local AlphaRewardService = {}
 
+-- Handle players
 function AlphaRewardService:Init()
     if not GameModeManager:IsAlpha() then
         return
@@ -30,6 +31,7 @@ function AlphaRewardService:Init()
     end)
 end
 
+-- Rewards player with badge/reward
 function AlphaRewardService:_handlePlayerAdded(player)
     BadgeService:AwardBadge(player.UserId, ALPHA_BADGE_ID)
     UserData:GiveSpecialReward(player.UserId, "ItCameFromTheDeep")
