@@ -426,7 +426,7 @@ if RunService:IsClient() then
 		
 		if humanoid then
 			-- Create a new indicator
-			local indicator = GuiTemplateProvider:Get("CombatIndicator")
+			local indicator = GuiTemplateProvider:Get("CombatIndicatorTemplate")
 			
 			-- Grab all of the indicator settings
 			local colors = indicator:GetAttribute("Colors")

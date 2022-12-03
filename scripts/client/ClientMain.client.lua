@@ -5,6 +5,8 @@
 local require = require(game:GetService("ReplicatedStorage"):WaitForChild("Compliance"))
 
 require("GuiTemplateProvider"):Init()
+require("LoadingScreen"):Init()
+
 require("ArmorRenderer"):Init()
 require("BlockRenderer"):Init()
 require("PortalRenderer"):Init()
