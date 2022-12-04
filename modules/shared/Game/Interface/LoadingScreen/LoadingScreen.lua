@@ -27,18 +27,18 @@ function LoadingScreen:Init()
     self._camera = workspace.CurrentCamera
     self._randomObject = Random.new()
 
-    self._startTick = os.clock()
-    self._lastStageUpdate = self._startTick
-    self._stageText = STAGE_NAMES[self._randomObject:NextInteger(1, #STAGE_NAMES)]
+    self._startTick = os.clock() -- Used to track how many dots should be displayed on stage text
+    self._lastStageUpdate = self._startTick -- Used to track when stage name should be changed
+    self._stageText = STAGE_NAMES[self._randomObject:NextInteger(1, #STAGE_NAMES)] -- Pick a random stage name to display on startup
 
-    self._screenGui = self._maid:AddTask(ScreenGuiProvider:Get("LoadingScreen"))
+    self._screenGui = self._maid:AddTask(ScreenGuiProvider:Get("LoadingScreen")) -- Add this to the maid so all descendants are destroyed on demand
     self._screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
     self._screenGui.IgnoreGuiInset = true
 
     self._totalAssets = 0
     self._loadedAssets = 0
 
-    StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false)
+    StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false) -- Disable the backpack while loading
     self:_setupGui()
     self:_gatherAssets()
 
@@ -50,7 +50,7 @@ function LoadingScreen:Init()
         self:_updateLoadingBar()
         self:_updateStageName()
     end)
-    self._maid:AddTask(task.spawn(function()
+    self._maid:AddTask(task.spawn(function() -- Add this thread so when the skip button is pressed execution is stopped immediately
         self:_loadAssets()
         self:_showMap()
     end))
@@ -68,11 +68,11 @@ function LoadingScreen:_showMap()
             GroupTransparency = 0.55;
             Size = UDim2.fromScale(1.15, 1.15);
         }
-    ):Play()
+    ):Play() -- Expand the map image and make it more visible
 
-    TweenService:Create(self._gui, TWEEN_INFO, {BackgroundTransparency = 0.45}):Play()
-    TweenService:Create(self._playMenuCanvas, TWEEN_INFO, {GroupTransparency = 0}):Play()
-    TweenService:Create(self._loadingBarCanvas, TweenInfo.new(1), {GroupTransparency = 1}):Play()
+    TweenService:Create(self._gui, TWEEN_INFO, {BackgroundTransparency = 0.45}):Play() -- Fade the black background out a bit
+    TweenService:Create(self._playMenuCanvas, TWEEN_INFO, {GroupTransparency = 0}):Play() -- Fade the play button in
+    TweenService:Create(self._loadingBarCanvas, TweenInfo.new(1), {GroupTransparency = 1}):Play() -- Fade the loading bar out
 end
 
 function LoadingScreen:_enableCameraSpin()
@@ -92,6 +92,7 @@ end
 function LoadingScreen:_playGame()
     Network:GetRemoteFunction(CharacterServiceConstants.DONE_LOADING_REMOTE_FUNCTION_NAME):InvokeServer()
     self._maid:Destroy()
+    StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, true) -- Re-enable the backpack
 end
 
 function LoadingScreen:_loadAssets()
@@ -170,7 +171,7 @@ end
 
 function LoadingScreen:_updateLoadingBar()
     local percentLoaded = (self._loadedAssets/self._totalAssets)
-    percentLoaded = percentLoaded ~= percentLoaded and 0 or percentLoaded -- Kinda gibberish but what i'm doing here is guaranteeing that percentLoaded will never be nan
+    percentLoaded = percentLoaded ~= percentLoaded and 0 or percentLoaded -- Guaranteeing that percentLoaded will never be "nan" so we dont display a wack number
     self._loadingBar.Size = UDim2.fromScale(percentLoaded, 1)
     self._percentLoadedLabel.Text = self._percentLoadedText:format(100 * percentLoaded)
 end
