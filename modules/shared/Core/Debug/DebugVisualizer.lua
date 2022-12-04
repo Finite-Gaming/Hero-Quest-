@@ -20,6 +20,7 @@ function DebugVisualizer:DebugPart(cframe, size, transparency, shape)
 
     part.CFrame = cframe or CFrame.identity
     part.Size = size or Vector3.one * 0.1
+    part.Parent = workspace.Terrain
 
     return part
 end
@@ -39,6 +40,10 @@ function DebugVisualizer:PointABPart(part, pointB, pointA)
     local distance = (pointA - pointB).Magnitude
     part.CFrame = CFrame.lookAt(pointA, pointB) * CFrame.Angles(0, -math.pi/2, 0) * CFrame.new(-distance/2, 0, 0)
     part.Size = Vector3.new(distance, part.Size.Y, part.Size.Z)
+
+    task.delay(0.3, function()
+        part:Destroy()
+    end)
 end
 
 function DebugVisualizer:LookAtPart(pointA, pointB, transparency, thickness)

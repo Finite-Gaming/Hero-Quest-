@@ -21,7 +21,7 @@ function ClassBinder.new(name, class)
     self.InstanceAdded = Signal.new()
 
     for _, instance in ipairs(CollectionService:GetTagged(self._name)) do
-        self:_bind(instance)
+        task.spawn(self._bind, self, instance)
     end
     CollectionService:GetInstanceAddedSignal(self._name):Connect(function(instance)
         self:_bind(instance)

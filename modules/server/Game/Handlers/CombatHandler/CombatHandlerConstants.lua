@@ -1,6 +1,0 @@
-return {
-    BASE_ATTACK_DAMAGE = 20;
-    MAX_ATTACK_DAMAGE = 20;
-
-    MAX_ATTACK_DISTANCE = 32;
-}

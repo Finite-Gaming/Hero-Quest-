@@ -6,6 +6,9 @@ local require = require(game:GetService("ReplicatedStorage"):WaitForChild("Compl
 
 workspace.Lobby.Assets:Destroy()
 
+require("ServerClassBinders"):Init()
+
+require("DamageFeedback"):Init()
 require("ArmorHandler"):Init()
 require("CharacterService"):Init()
 require("SettingsService"):Init()
@@ -14,7 +17,5 @@ require("SpawnZoneHandler"):Init()
 require("PartyEventHandler"):Init()
 require("PlayerNoCollideService"):Init()
 require("AlphaRewardService"):Init()
-require("ServerClassBinders"):Init()
 
-require("CombatHandler") -- TODO: Init method
-require("PartyHandler")
+require("PartyHandler") -- TODO: Init method

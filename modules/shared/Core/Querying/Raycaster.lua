@@ -53,7 +53,7 @@ function Raycaster:_tryCast(origin, direction)
 
     if result then
         if self.Visualize then
-            DebugVisualizer:LookAtPart(origin, result.Position, 0.7, 0.05)
+            DebugVisualizer:LookAtPart(origin, result.Position, 0.3, 0.05)
         end
 
         if self.Filter and self.Filter(result) then
@@ -65,7 +65,7 @@ function Raycaster:_tryCast(origin, direction)
     end
 
     if self.Visualize then
-        DebugVisualizer:LookAtPart(origin, origin + direction, 0.7, 0.05)
+        DebugVisualizer:LookAtPart(origin, origin + direction, 0.3, 0.05)
     end
 
     return true

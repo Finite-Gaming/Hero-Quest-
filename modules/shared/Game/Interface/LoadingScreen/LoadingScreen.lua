@@ -123,10 +123,10 @@ function LoadingScreen:_gatherAssets()
         for _, asset in ipairs(service:GetDescendants()) do
             self:_handleAssetAdded(asset)
         end
+        self._maid:AddTask(service.DescendantAdded:Connect(function(asset) -- Load any assets replicated late
+            self:_handleAssetAdded(asset)
+        end))
     end
-    self._maid:AddTask(workspace.DescendantAdded:Connect(function(asset) -- Load any assets replicated late
-        self:_handleAssetAdded(asset)
-    end))
 end
 
 function LoadingScreen:_handleAssetAdded(obj)

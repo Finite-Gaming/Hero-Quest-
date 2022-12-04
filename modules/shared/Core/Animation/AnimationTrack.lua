@@ -5,10 +5,14 @@
 local AnimationTrack = {}
 AnimationTrack.__index = AnimationTrack
 
-function AnimationTrack.new(humanoid, id)
-    local animation = Instance.new("Animation")
-    animation.AnimationId = id
-    --animation.Parent = humanoid
+function AnimationTrack.new(animationOrId, humanoid)
+    local animation = nil
+    if typeof(animationOrId) == "Instance" then
+        animation = animationOrId
+    else
+        animation = Instance.new("Animation")
+        animation.AnimationId = animationOrId
+    end
 
     return humanoid:LoadAnimation(animation)
 end
