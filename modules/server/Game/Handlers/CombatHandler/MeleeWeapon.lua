@@ -13,10 +13,16 @@ local MeleeWeaponConstants = require("MeleeWeaponConstants")
 local HumanoidUtils = require("HumanoidUtils")
 local DamageFeedback = require("DamageFeedback")
 
+local ANIMATIONS = ReplicatedStorage:WaitForChild("Animations"):WaitForChild("Weapon")
+local GENERIC_ANIMATIONS = ANIMATIONS:WaitForChild("Generic")
+local ONE_HANDED_ANIMATIONS = ANIMATIONS:WaitForChild("OneHanded")
+local TWO_HANDED_ANIMATIONS = ANIMATIONS:WaitForChild("TwoHanded")
+
 local MeleeWeapon = setmetatable({}, BaseObject)
 MeleeWeapon.__index = MeleeWeapon
 
 function MeleeWeapon.new(obj)
+    warn("server melee .new called")
     local self = setmetatable(BaseObject.new(obj), MeleeWeapon)
 
     self._player = self._obj:FindFirstAncestorOfClass("Player")
@@ -36,6 +42,8 @@ function MeleeWeapon.new(obj)
         return
     end
 
+    warn("server melee initializing")
+
     self._remoteEvent = Instance.new("RemoteEvent")
     self._remoteEvent.Name = MeleeWeaponConstants.REMOTE_EVENT_NAME
     self._remoteEvent.Parent = self._obj
@@ -45,6 +53,13 @@ function MeleeWeapon.new(obj)
 
     self._humanoid = self._character.Humanoid
     self._attackCooldown = 1/self._obj:GetAttribute("BaseAttackSpeed")
+    self._animationType = self._obj:GetAttribute("AnimationType")
+
+    if self._animationType == "OneHanded" then
+        self._animationFolder = ONE_HANDED_ANIMATIONS
+    elseif self._animationType == "TwoHanded" then
+        self._animationFolder = TWO_HANDED_ANIMATIONS
+    end
 
     self._maid:AddTask(self._obj.Equipped:Connect(function()
         self:_handleEquipped()
@@ -104,10 +119,14 @@ end
 
 function MeleeWeapon:_handleEquipped()
     self._equipped = true
+
+    self._character.Animate.run.Animation.AnimationId = (self._animationFolder:FindFirstChild("Run") or GENERIC_ANIMATIONS.Run).AnimationId
 end
 
 function MeleeWeapon:_handleUnequipped()
     self._equipped = false
+
+    self._character.Animate.run.Animation.AnimationId = "http://www.roblox.com/asset/?id=4417979645"
 end
 
 return MeleeWeapon

@@ -5,11 +5,13 @@
 local require = require(game:GetService("ReplicatedStorage"):WaitForChild("Compliance"))
 
 local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
 
 local Network = require("Network")
 local DamageFeedbackConstants = require("DamageFeedbackConstants")
 local GuiTemplateProvider = require("GuiTemplateProvider")
 local DebugVisualizer = require("DebugVisualizer")
+local Spring = require("Spring")
 
 local LEAST_DAMAGE = Color3.new(1, 1, 0)
 local MOST_DAMAGE = Color3.new(1, 0, 1)
@@ -70,8 +72,32 @@ end
 
 function DamageFeedbackClient:_shakeDummy(dummy, hitPosition)
     local dummyPivot = dummy.WorldPivot
+    local rotModifier = Vector3.new(0, math.random(), math.random())
 
-    -- TODO
+    dummy:PivotTo(dummyPivot * CFrame.fromOrientation(rotModifier.X, rotModifier.Y, rotModifier.Z))
+
+    local pivotSpring = Spring.new(1)
+    pivotSpring.Speed = 10
+    pivotSpring.Damper = 0.5
+    pivotSpring.Target = 0
+
+    local function updatePivot()
+        local rotMultiplier = pivotSpring.Position
+        local newRotModifier = rotModifier * rotMultiplier
+        local newPivot = dummyPivot * CFrame.fromOrientation(newRotModifier.X, newRotModifier.Y, newRotModifier.Z)
+        dummy:PivotTo(newPivot)
+    end
+
+    local startTick = os.clock()
+    local updateShake; updateShake = RunService.RenderStepped:Connect(function()
+        if os.clock() - startTick > 1 then
+            updateShake:Disconnect()
+            dummy:PivotTo(dummyPivot)
+            return
+        end
+
+        updatePivot()
+    end)
 end
 
 function DamageFeedbackClient:_getRandomOffset()

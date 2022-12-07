@@ -6,7 +6,7 @@ local require = require(game:GetService("ReplicatedStorage"):WaitForChild("Compl
 
 local Network = require("Network")
 local DamageFeedbackConstants = require("DamageFeedbackConstants")
-
+ 
 local DamageFeedback = {}
 
 function DamageFeedback:Init()

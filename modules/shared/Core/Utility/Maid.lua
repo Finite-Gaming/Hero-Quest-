@@ -36,6 +36,14 @@ function Maid:UnbindAction(name)
 end
 
 function Maid:Destroy()
+    for i, obj in pairs(self._tasks) do
+        local taskType = typeof(obj)
+        if taskType == "RBXScriptConnection" or (taskType == "table" and obj.Disconnect) then
+            self:_cleanTask(obj)
+            self._tasks[i] = nil
+        end
+    end
+
     for actionName, _ in pairs(self._boundActions) do
         ContextActionService:UnbindAction(actionName)
     end
