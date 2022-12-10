@@ -14,6 +14,8 @@ function ScreenGuiProvider:Get(guiName)
     if not gui then
         gui = Instance.new("ScreenGui")
         gui.Name = guiName
+        gui.ResetOnSpawn = false
+        gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
         gui.Parent = Players.LocalPlayer.PlayerGui
     end
 

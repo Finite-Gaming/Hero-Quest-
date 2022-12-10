@@ -22,7 +22,6 @@ local MeleeWeapon = setmetatable({}, BaseObject)
 MeleeWeapon.__index = MeleeWeapon
 
 function MeleeWeapon.new(obj)
-    warn("server melee .new called")
     local self = setmetatable(BaseObject.new(obj), MeleeWeapon)
 
     self._player = self._obj:FindFirstAncestorOfClass("Player")
@@ -41,8 +40,6 @@ function MeleeWeapon.new(obj)
         warn("[MeleeWeapon] - Failed to get character")
         return
     end
-
-    warn("server melee initializing")
 
     self._remoteEvent = Instance.new("RemoteEvent")
     self._remoteEvent.Name = MeleeWeaponConstants.REMOTE_EVENT_NAME

@@ -23,7 +23,6 @@ local MeleeWeaponClient = setmetatable({}, BaseObject)
 MeleeWeaponClient.__index = MeleeWeaponClient
 
 function MeleeWeaponClient.new(obj)
-    print("client melee .new called")
     local self = setmetatable(BaseObject.new(obj), MeleeWeaponClient)
 
     self._player = self._obj.Parent.Parent
@@ -37,7 +36,6 @@ function MeleeWeaponClient.new(obj)
     end
 
     self._character = self._player.Character or self._player.CharacterAdded:Wait()
-    print("melee client initializng")
 
     self._raycaster = Raycaster.new()
     self._raycaster:Ignore(self._character)
