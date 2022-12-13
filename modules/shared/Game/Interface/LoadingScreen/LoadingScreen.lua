@@ -54,6 +54,9 @@ function LoadingScreen:Init()
         self:_loadAssets()
         self:_showMap()
     end))
+    self._maid:AddTask(function()
+        self._streamingIn = true
+    end)
 end
 
 function LoadingScreen:_showMap()
@@ -90,8 +93,12 @@ function LoadingScreen:_enableCameraSpin()
 end
 
 function LoadingScreen:_playGame()
-    Network:GetRemoteFunction(CharacterServiceConstants.DONE_LOADING_REMOTE_FUNCTION_NAME):InvokeServer()
+    if self._streamingIn then
+        return
+    end
+
     self._maid:Destroy()
+    Network:GetRemoteFunction(CharacterServiceConstants.DONE_LOADING_REMOTE_FUNCTION_NAME):InvokeServer()
     StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, true) -- Re-enable the backpack
 end
 

@@ -1,6 +1,6 @@
 ---
 -- @classmod PlayerInfoDisplay
--- @author
+-- @author frick
 
 local require = require(game:GetService("ReplicatedStorage"):WaitForChild("Compliance"))
 

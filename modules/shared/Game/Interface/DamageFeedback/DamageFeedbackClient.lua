@@ -25,6 +25,7 @@ local DamageFeedbackClient = {}
 
 function DamageFeedbackClient:Init()
     self._randomObject = Random.new()
+    self._animatingDummyInfo = {}
 
     Network:GetRemoteEvent(DamageFeedbackConstants.REMOTE_EVENT_NAME).OnClientEvent:Connect(function(...)
         self:_handleClientEvent(...)
@@ -71,33 +72,47 @@ function DamageFeedbackClient:_handleClientEvent(humanoid, damage, position)
 end
 
 function DamageFeedbackClient:_shakeDummy(dummy, hitPosition)
-    local dummyPivot = dummy.WorldPivot
-    local rotModifier = Vector3.new(0, math.random(), math.random())
+    local startPivot = dummy.WorldPivot
+    local oldAnimationInfo = self._animatingDummyInfo[dummy]
+    if oldAnimationInfo then
+        oldAnimationInfo[1]:Disconnect()
+        startPivot = oldAnimationInfo[2]
+    end
 
-    dummy:PivotTo(dummyPivot * CFrame.fromOrientation(rotModifier.X, rotModifier.Y, rotModifier.Z))
+    local hitAngle = dummy:GetAttribute("HitAngle")
+    local wobbleTime = dummy:GetAttribute("WobbleTime")
+    local rotModifier = Vector3.new(math.rad(math.random(0, hitAngle)), 0, math.rad(math.random(-hitAngle, hitAngle)))
+
+    local shakenPivot = startPivot * CFrame.fromOrientation(rotModifier.X, rotModifier.Y, rotModifier.Z)
+    for i = 1, 5 do
+        dummy:PivotTo(startPivot:Lerp(shakenPivot, i/5))
+        task.wait()
+    end
 
     local pivotSpring = Spring.new(1)
-    pivotSpring.Speed = 10
+    pivotSpring.Speed = 15/wobbleTime
     pivotSpring.Damper = 0.5
     pivotSpring.Target = 0
 
     local function updatePivot()
         local rotMultiplier = pivotSpring.Position
         local newRotModifier = rotModifier * rotMultiplier
-        local newPivot = dummyPivot * CFrame.fromOrientation(newRotModifier.X, newRotModifier.Y, newRotModifier.Z)
+        local newPivot = startPivot * CFrame.fromOrientation(newRotModifier.X, newRotModifier.Y, newRotModifier.Z)
         dummy:PivotTo(newPivot)
     end
 
     local startTick = os.clock()
     local updateShake; updateShake = RunService.RenderStepped:Connect(function()
-        if os.clock() - startTick > 1 then
+        if os.clock() - startTick > wobbleTime then
             updateShake:Disconnect()
-            dummy:PivotTo(dummyPivot)
+            dummy:PivotTo(startPivot)
+            self._animatingDummyInfo[dummy] = nil
             return
         end
 
         updatePivot()
     end)
+    self._animatingDummyInfo[dummy] = {updateShake, startPivot}
 end
 
 function DamageFeedbackClient:_getRandomOffset()

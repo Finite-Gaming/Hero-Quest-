@@ -4,7 +4,7 @@ local require = require(game:GetService("ReplicatedStorage"):WaitForChild("Compl
 local ServerScriptService = game:GetService("ServerScriptService")
 local Players = game:GetService("Players")
 local HttpService = game:GetService("HttpService")
-local skins = ServerScriptService:WaitForChild("Skins")
+-- local skins = ServerScriptService:WaitForChild("Skins")
 
 -- Skin UUID -> Internal skin ID mappings
 local CompanionSkins = require("CompanionConstants")
@@ -25,23 +25,23 @@ local MONTH = DAY * 30
 export type ItemUUID = string;
 export type Companion = {
 	SkinID: CompanionSkins.SkinID; -- ID of the particular companion skin
-	
+
 	-- The unique ID of the companion
 	UUID: ItemUUID;
-	
+
 	-- Companion data
 	Nickname: string?;
 	Level: number;
 }
 export type Weapon = {
 	SkinID: WeaponSkins.SkinID; -- ID of the particular weapon skin
-	
+
 	-- The unique ID of the weapon
 	UUID: ItemUUID;
 }
 export type Armor = {
 	SkinID: ArmorSkins.SkinID; -- ID of the particular armor skin
-	
+
 	-- The unique ID of the armor
 	UUID: ItemUUID;
 }
@@ -63,32 +63,32 @@ local DefaultData = {
 	Money = 0;
 	-- Essence (XP standin)
 	XP = 0;
-	
+
 	-- Owned skins
 	Weapons = {} :: {[ItemUUID]: Weapon};
 	Armors = {} :: {[ItemUUID]: Armor};
 	Companions = {} :: {[ItemUUID]: Companion};
-	
+
 	-- Special rewards
 	SpecialRewards = {} :: {[string]: boolean?};
-	
+
 	-- Active skins
 	ActiveSkins = {
 		Weapon = nil :: ItemUUID?;
 		Armor = nil :: ItemUUID?;
 		Companion = nil :: ItemUUID?;
 	};
-	
+
 	-- Login date
 	LastLogin = 0;
-	
+
 	-- Successive login days
 	SuccessiveDailyLogins = 0;
-	
+
 	-- Login rewards
 	NextLoginReward = 0;
 	AvailableLoginRewards = 0;
-	
+
 	-- Settings
 	Settings = {
 		MusicVolume = 1; -- Volume of 
@@ -127,17 +127,19 @@ function UserData:CreateWeapon(skinId: WeaponSkins.SkinID): Weapon
 		UUID = self:CreateItemUUID();
 	}
 end
+
 function UserData:CreateArmor(skinId: ArmorSkins.SkinID): Armor
 	return {
 		SkinID = skinId;
 		UUID = self:CreateItemUUID();
 	}
 end
+
 function UserData:CreateCompanion(skinId: CompanionSkins.SkinID): Companion
 	return {
 		SkinID = skinId;
 		UUID = self:CreateItemUUID();
-		
+
 		Level = 0;
 	}
 end
@@ -145,7 +147,7 @@ end
 -- Checks if a user profile exists and returns it without creating any new one
 function UserData:FindLoadedProfile(userId: number)
 	assert(type(userId) == "number", "UserId is not a number.")
-	
+
 	local key = string.format(PROFILE_KEY_FORMAT, userId)
 	return self.UserProfiles[key]
 end
@@ -199,18 +201,18 @@ local SpecialRewards = {
 function UserData:GiveSpecialReward(userId: number, rewardName: string)
 	local profile = self:WaitForProfile(userId)
 	local data = profile.Data
-	
+
 	local rewards = data.SpecialRewards
 	if not rewards[rewardName] then
 		local reward = assert(SpecialRewards[rewardName], string.format("%s is not a valid special reward.", rewardName))
-		
+
 		local weapons = reward.Weapons
 		local armors = reward.Armors
 		local companions = reward.Companions
-		
+
 		local money = reward.Money
 		local xp = reward.XP
-		
+
 		-- Award weapons
 		if weapons then
 			if not data.Weapons then
@@ -241,7 +243,7 @@ function UserData:GiveSpecialReward(userId: number, rewardName: string)
 				data.Companions[companion.UUID] = companion
 			end
 		end
-		
+
 		-- Award money
 		if money then
 			self:AwardCurrency("Money", money)
@@ -250,7 +252,7 @@ function UserData:GiveSpecialReward(userId: number, rewardName: string)
 		if xp then
 			self:AwardCurrency("XP", xp)
 		end
-		
+
 		print(string.format("Gave user %d special reward %s.", userId, rewardName), weapons, armors, companions, money, xp)
 		print("Has weapons:", data.Weapons)
 		print("Has armors:", data.Armors)
@@ -270,7 +272,7 @@ function UserData:GetProfile(userId: number)
 		profile = ProfileStore:LoadProfileAsync(key)
 		profile = self.UserProfiles[key] or profile
 		self.UserProfiles[key] = profile
-		
+
 		if profile then
 			-- Set up user profile
 			-- GDPR compliance
@@ -281,7 +283,7 @@ function UserData:GetProfile(userId: number)
 			profile:ListenToRelease(function()
 				print("Released player data for user", userId)
 				self.UserProfiles[key] = nil
-				
+
 				-- If the player by this user ID is in the server, disconnect them
 				local player = Players:GetPlayerByUserId(userId)
 				if player then
@@ -291,7 +293,7 @@ function UserData:GetProfile(userId: number)
 				end
 			end)
 		end
-		
+
 		-- Profile is ready
 		warn("Profile ready", userId, key, self:FindLoadedProfile(userId) == profile)
 		profileReady:Fire(userId)
@@ -331,18 +333,18 @@ end
 function UserData:AwardCurrency(userId: number, currencyType: string, amount: number)
 	local profile = self:WaitForProfile(userId)
 	assert(profile, "Data is not loaded.")
-	
+
 	-- If we're not giving money, do not do anything to the player's data
 	if amount <= 0 then
 		return
 	end
-	
+
 	-- Make sure the player has the currency, and if they don't, give them 0
 	local data = profile.Data
 	if not data[currencyType] then
 		data[currencyType] = 0
 	end
-	
+
 	-- Add the awarded currency
 	data[currencyType] += amount
 end
@@ -355,13 +357,13 @@ function UserData:HasCurrency(userId: number, currencyType: string, amount: numb
 	if amount <= 0 then
 		return true
 	end
-	
+
 	-- Make sure the player has the currency, and if they don't, give them 0
 	local data = profile.Data
 	if not data[currencyType] then
 		data[currencyType] = 0
 	end
-	
+
 	-- Return whether or not they do have enough
 	return data[currencyType] >= amount
 end
@@ -380,10 +382,10 @@ function UserData:TakeCurrency(userId: number, currencyType: string, amount: num
 	if not data[currencyType] then
 		data[currencyType] = 0
 	end
-	
+
 	-- Ensure the player has enough currency
 	assert(self:HasCurrency(userId, currencyType, amount), string.format("Player does not have enough of the currency %s.", currencyType))
-	
+
 	-- Take the awarded currency
 	data[currencyType] -= amount
 end
@@ -398,10 +400,10 @@ local function handlePlayer(player: Player)
 		player:Kick("Failed to load your data. You have been kicked to make sure that you don't lose any progress.")
 		return error(string.format("Failed to load %s's (id %d) profile.", player.DisplayName, userId))
 	end
+
 	warn(profile)
 	-- Award starter gear
 	UserData:GiveSpecialReward(userId, "Starter")
-	
 	loggedIn:Fire(player)
 end
 
@@ -415,7 +417,7 @@ Players.PlayerAdded:Connect(handlePlayer)
 Players.PlayerRemoving:Connect(function(player)
 	local userId = player.UserId
 	local profile = UserData:FindLoadedProfile(userId)
-	
+
 	if profile then
 		-- Release the user's profile
 		profile:Release()
