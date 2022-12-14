@@ -16,7 +16,7 @@ end
 
 return {
     Category("Armor", "Armor"); -- Display name, ItemConstants key
-    Category("Weapons");
+    Category("Weapons", "Weapons");
     Category("Pets", "Pets");
     Category("Armor Effects", "ArmorEffects");
     Category("Abilities", "Abilities")

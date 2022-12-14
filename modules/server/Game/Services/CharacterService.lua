@@ -49,6 +49,7 @@ function CharacterService:_handleCharacterAdded(player, character)
     end
 
     CollectionService:AddTag(character, "PlayerInfoDisplay")
+    CollectionService:AddTag(character, "ShopInterface")
     CollectionService:AddTag(character, "MainButtonsInterface")
 
     local humanoid = character:FindFirstChildWhichIsA("Humanoid")

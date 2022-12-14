@@ -31,7 +31,9 @@ return {
     };
     Pets = {
         -- Default companion (TBD)
-	    ["84FBF597-1A12-4596-BA7D-77818AEF42AC"] = "Basic";
+	    ["84FBF597-1A12-4596-BA7D-77818AEF42AC"] = {
+            Name = "Basic";
+        };
     };
     ArmorEffects = {};
     Abilities = {};

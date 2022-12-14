@@ -11,6 +11,7 @@ return ClassBinderProvider.new(function(self)
     -- Interface
     self:AddClassBinder(ClassBinder.new("PlayerInfoDisplay", require("PlayerInfoDisplay")))
     self:AddClassBinder(ClassBinder.new("MainButtonsInterface", require("MainButtonsInterface")))
+    self:AddClassBinder(ClassBinder.new("ShopInterface", require("ShopInterface")))
 
     -- Tools
     self:AddClassBinder(ClassBinder.new("MeleeWeapon", require("MeleeWeaponClient")))
