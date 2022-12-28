@@ -1,7 +1,6 @@
 --- Rewards players for playing in alpha
 -- @classmod AlphaRewardService
 -- @author unknown, frick
--- TODO: Refactor for Compliance
 
 local require = require(game:GetService("ReplicatedStorage"):WaitForChild("Compliance"))
 
@@ -11,7 +10,7 @@ local armorSetsFolder = ReplicatedStorage:WaitForChild("ArmorSets")
 
 local ArmorService = require("ArmorService")
 local ArmorHandlerConstants = require("ArmorHandlerConstants")
-local ArmorSkins = require("ArmorConstants")
+local ItemConstants = require("ItemConstants")
 
 -- Configuration
 local defaultArmorSet = ArmorHandlerConstants.DEFAULT_ARMOR_SET
@@ -58,16 +57,10 @@ function ArmorHandler:_updateCharacter(player, character)
 		player:SetAttribute("ArmorSet", defaultArmorSet)
 		local selected = player:GetAttribute("ArmorSet")
 		print(selected)
-		local ArmorData
-		for _, Data in next, ArmorSkins do
-			if Data.Name == selected then
-				ArmorData = Data
-				break
-			end
-		end
+		local armorData = ItemConstants.Armor[selected]
 
-		if ArmorData.Health then -- TODO: Possibly move this to ArmorService.lua
-			character.Humanoid.MaxHealth = math.floor(100 * ArmorData.Health)
+		if armorData.Health then -- TODO: Possibly move this to ArmorService.lua
+			character.Humanoid.MaxHealth = math.floor(100 * armorData.Health)
 			character.Humanoid.Health = character.Humanoid.MaxHealth
 		end
 		return

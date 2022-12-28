@@ -1,3 +1,3 @@
 return {
-    DEFAULT_ARMOR_SET = "Diver";
+    DEFAULT_ARMOR_SET = "AlphaArmor";
 }

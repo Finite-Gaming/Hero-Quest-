@@ -66,11 +66,11 @@ function ShopInterface:_setupGui()
 
         for _, itemData in pairs(shopCategory.Items) do
             itemLayoutOrder += 1
-
+            print(itemData)
             local itemGridItem = GuiTemplateProvider:Get("ItemGridItemTemplate")
 
             itemGridItem.LayoutOrder = itemLayoutOrder
-            itemGridItem.TextLabel.Text = itemData.Name
+            itemGridItem.TextLabel.Text = itemData.DisplayName
             itemGridItem.Visible = false
             itemGridItem.Parent = self._subframeScrollingFrame
 

@@ -6,105 +6,15 @@ local Players = game:GetService("Players")
 local HttpService = game:GetService("HttpService")
 -- local skins = ServerScriptService:WaitForChild("Skins")
 
--- Skin UUID -> Internal skin ID mappings
-local CompanionSkins = require("CompanionConstants")
-local WeaponSkins = require("WeaponConstants")
-local ArmorSkins = require("ArmorConstants")
+local ItemConstants = require("ItemConstants")
+local DefaultData = require("DefaultData")
 
 -- ProfileService (data storage)
 local ProfileService = require("ProfileService")
 local PROFILE_KEY_FORMAT = "USER_%d"
 
--- Time constants
-local MINUTE = 60
-local HOUR = 60 * MINUTE
-local DAY = HOUR * 24
-local WEEK = DAY * 7
-local MONTH = DAY * 30
-
-export type ItemUUID = string;
-export type Companion = {
-	SkinID: CompanionSkins.SkinID; -- ID of the particular companion skin
-
-	-- The unique ID of the companion
-	UUID: ItemUUID;
-
-	-- Companion data
-	Nickname: string?;
-	Level: number;
-}
-export type Weapon = {
-	SkinID: WeaponSkins.SkinID; -- ID of the particular weapon skin
-
-	-- The unique ID of the weapon
-	UUID: ItemUUID;
-}
-export type Armor = {
-	SkinID: ArmorSkins.SkinID; -- ID of the particular armor skin
-
-	-- The unique ID of the armor
-	UUID: ItemUUID;
-}
-
-local function getSkin(skins, skinName: string): string
-	local skinIndex
-	for index, name in pairs(skins) do
-		if name.Name == skinName then
-			skinIndex = index
-			break
-		end
-	end
-	--assert(skinIndex, string.format("No skin with name '%s'.", skinName))
-	return skinIndex
-end
-
-local DefaultData = {
-	-- Coins
-	Money = 0;
-	-- Essence (XP standin)
-	XP = 0;
-
-	-- Owned skins
-	Weapons = {} :: {[ItemUUID]: Weapon};
-	Armors = {} :: {[ItemUUID]: Armor};
-	Companions = {} :: {[ItemUUID]: Companion};
-
-	-- Special rewards
-	SpecialRewards = {} :: {[string]: boolean?};
-
-	-- Active skins
-	ActiveSkins = {
-		Weapon = nil :: ItemUUID?;
-		Armor = nil :: ItemUUID?;
-		Companion = nil :: ItemUUID?;
-	};
-
-	-- Login date
-	LastLogin = 0;
-
-	-- Successive login days
-	SuccessiveDailyLogins = 0;
-
-	-- Login rewards
-	NextLoginReward = 0;
-	AvailableLoginRewards = 0;
-
-	-- Settings
-	Settings = {
-		MusicVolume = 1; -- Volume of 
-		SFXVolume = 1; -- Volume of SFX
-		AmbienceVolume = 1; -- Volume of ambient/background noise
-
-		CameraShake = true; -- Enables/disables screen shake
-		PitchCorrection = true; -- Pitch correction for various SFX (Slow)
-		ReducedParticles = false; -- Reduces particles for low-end devices
-		ReducedShadows = false; -- Whether or not to disable shadows
-		ShowOtherPlayerDamage = true; -- Indicates whether or not other player's damage numbers should be displayed
-	};
-}
-
 local ProfileStore = ProfileService.GetProfileStore(
-	"UserData",
+	"PlayerData",
 	DefaultData
 )
 
@@ -116,33 +26,6 @@ local profileReady = Instance.new("BindableEvent")
 
 local loggedIn = Instance.new("BindableEvent")
 UserData.LoggedIn = loggedIn.Event
-
-function UserData:CreateItemUUID(): ItemUUID
-	return HttpService:GenerateGUID(false)
-end
-
-function UserData:CreateWeapon(skinId: WeaponSkins.SkinID): Weapon
-	return {
-		SkinID = skinId;
-		UUID = self:CreateItemUUID();
-	}
-end
-
-function UserData:CreateArmor(skinId: ArmorSkins.SkinID): Armor
-	return {
-		SkinID = skinId;
-		UUID = self:CreateItemUUID();
-	}
-end
-
-function UserData:CreateCompanion(skinId: CompanionSkins.SkinID): Companion
-	return {
-		SkinID = skinId;
-		UUID = self:CreateItemUUID();
-
-		Level = 0;
-	}
-end
 
 -- Checks if a user profile exists and returns it without creating any new one
 function UserData:FindLoadedProfile(userId: number)
@@ -163,42 +46,47 @@ function UserData:WaitForProfile(userId: number)
 	return profile
 end
 
--- Special rewards
-export type SpecialReward = {
-	Weapons: {WeaponSkins.SkinID}?;
-	Armors: {ArmorSkins.SkinID}?;
-	Companions: {CompanionSkins.SkinID}?;
+-- Time constants
+local MINUTE = 60
+local HOUR = 60 * MINUTE
+local DAY = HOUR * 24
+local WEEK = DAY * 7
+local MONTH = DAY * 30
 
-	Money: number?;
-	XP: number?;
-}
+--[[ type SpecialReward {
+    Weapons = {[itemKey] = str}
+    Armor = {[itemKey] = str}
+    Pets = {[itemKey] = str}
 
+    Money = int
+    XP = int
+}]]
 local SpecialRewards = {
 	-- Default
 	Starter = {
 		Weapons = {
-			getSkin(WeaponSkins, "Basic");
+			BasicSword = 1;
 		};
-		Armors = {
-			getSkin(ArmorSkins, "Basic");
+		Armor = {
+			BasicArmor = 1;
 		};
-		Companions = {
-			getSkin(CompanionSkins, "Basic");
+		Pets = {
+			StarterPet = 1;
 		};
 	};
 	-- Alpha tester gear
 	ItCameFromTheDeep = {
 		Weapons = {
-			getSkin(WeaponSkins, "Diver");
+			AlphaHammer = 1;
 		};
-		Armors = {
-			getSkin(ArmorSkins, "Diver");
+		Armor = {
+			AlphaArmor = 1;
 		};
 	};
-} :: {[string]: SpecialReward}
+}
 
 -- Gives a special reward from the table above (will only provide it once)
-function UserData:GiveSpecialReward(userId: number, rewardName: string)
+function UserData:GiveSpecialReward(userId, rewardName)
 	local profile = self:WaitForProfile(userId)
 	local data = profile.Data
 
@@ -206,62 +94,64 @@ function UserData:GiveSpecialReward(userId: number, rewardName: string)
 	if not rewards[rewardName] then
 		local reward = assert(SpecialRewards[rewardName], string.format("%s is not a valid special reward.", rewardName))
 
-		local weapons = reward.Weapons
-		local armors = reward.Armors
-		local companions = reward.Companions
-
-		local money = reward.Money
-		local xp = reward.XP
-
-		-- Award weapons
-		if weapons then
-			if not data.Weapons then
-				data.Weapons = {}
-			end
-			for _, skinId in ipairs(weapons) do
-				local weapon = self:CreateWeapon(skinId)
-				data.Weapons[weapon.UUID] = weapon
-			end
-		end
-		-- Award armors
-		if armors then
-			if not data.Armors then
-				data.Armors = {}
-			end
-			for _, skinId in ipairs(armors) do
-				local armor = self:CreateArmor(skinId)
-				data.Armors[armor.UUID] = armor
-			end
-		end
-		-- Award companions
-		if companions then
-			if not data.Companions then
-				data.Companions = {}
-			end
-			for _, skinId in ipairs(companions) do
-				local companion = self:CreateCompanion(skinId)
-				data.Companions[companion.UUID] = companion
-			end
-		end
+		for _, itemType in ipairs({"Weapons", "Armor", "Pets"}) do
+            for _, itemKey in ipairs(reward[itemType] or {}) do
+                self:AwardItem(userId, itemType, itemKey)
+            end
+        end
 
 		-- Award money
-		if money then
-			self:AwardCurrency("Money", money)
+		if reward.Money then
+			self:AwardCurrency("Money", reward.Money)
 		end
 		-- Award XP
-		if xp then
-			self:AwardCurrency("XP", xp)
+		if reward.XP then
+			self:AwardCurrency("XP", reward.XP)
 		end
 
-		print(string.format("Gave user %d special reward %s.", userId, rewardName), weapons, armors, companions, money, xp)
+		print(string.format("Gave user %d special reward %s.", userId, rewardName))
 		print("Has weapons:", data.Weapons)
 		print("Has armors:", data.Armors)
-		print("Has companions:", data.Companions)
+		print("Has pets:", data.Pets)
 		rewards[rewardName] = true
 	else
 		-- Player already has the reward
 		warn(string.format("User %d already has the special reward %s", userId, rewardName))
 	end
+end
+
+local secureOwnedItemTypeKeys = {
+    Weapons = true;
+    Armor = true;
+    Pets = true;
+}
+function UserData:AwardItem(userId, itemType, itemKey, amount)
+    print(userId, itemType, itemKey, amount)
+    amount = amount or 1
+    assert(amount == amount and amount > 0, "Invalid amount")
+    assert(secureOwnedItemTypeKeys[itemType], "Invalid itemType")
+    local itemConstants = assert(ItemConstants[itemType][itemKey], "Invalid itemKey")
+    assert(not itemConstants.Stackable and amount > 1, "Item is not stackable, higher quantity than 1 was provided")
+
+	local profile = UserData:GetProfile(userId)
+    local itemEntry = profile.Data[itemType][itemKey]
+
+    if itemEntry then
+        if itemConstants.Stackable then
+            itemEntry.Quantity += amount
+        else
+            itemEntry.Quantity = 1
+        end
+    else
+        profile.Data[itemType][itemKey] = {Quantity = amount}
+    end
+end
+
+function UserData:GetOwnedItems(userId, itemType)
+    assert(secureOwnedItemTypeKeys[itemType], "Invalid itemType")
+	local profile = UserData:GetProfile(userId)
+
+    return profile.Data[itemType]
 end
 
 -- Retrieves a user's profile and creates it if it does not exist
@@ -300,32 +190,46 @@ function UserData:GetProfile(userId: number)
 	end
 	return profile
 end
+
 -- Handle validating user owned items
-function UserData:HasArmor(userId: number, value: any?)
-	local Profile = UserData:GetProfile(userId)
-	local doesOwn = false
-	for _, ArmorData in next, Profile.Data.Armors do
-		if value.SkinID == ArmorData.SkinID then
-			doesOwn = true
-			break
-		end
-	end
-	return doesOwn
+function UserData:HasItem(userId, itemType, itemKey)
+    assert(secureOwnedItemTypeKeys[itemType], "Invalid itemType")
+    assert(ItemConstants[itemType][itemKey], "Invalid itemKey")
+	local profile = UserData:GetProfile(userId)
+
+    return profile.Data[itemType][itemKey] and true or false
 end
 
-function UserData:UpdateSkin(userId: number, settingType: string, valueData)
-	local Profile = UserData:GetProfile(userId)
-	Profile.Data['ActiveSkins'][settingType] = valueData.SkinID
-	warn(Profile)
-	if settingType == "Armor" then
-		local Player = Players:GetPlayerByUserId(userId)
-		Player:SetAttribute("ArmorSet", valueData.DecodeName)
-		local ArmorData = ArmorSkins[valueData.SkinID]
-		if ArmorData.Health then
-			Player.Character.Humanoid.MaxHealth = math.floor(100 * ArmorData.Health)
-			Player.Character.Humanoid.Health = Player.Character.Humanoid.MaxHealth
-		end
-	end
+-- Handle equipping item requests
+local secureEquippedItemMap = {
+    Weapon = "Weapons";
+    Armor = "Armor";
+    Pet = "Pets";
+}
+function UserData:UpdateEquipped(userId, itemType, itemKey)
+    local constantKey = assert(secureEquippedItemMap[itemType])
+    assert(ItemConstants[constantKey][itemKey])
+
+	local profile = UserData:GetProfile(userId)
+	profile.Data.EquippedItems[itemType] = itemKey
+
+    local player = Players:GetPlayerByUserId(userId)
+    if player and player.Character then
+        local character = player.Character
+
+        if itemType == "Armor" then
+            player:SetAttribute("ArmorSet", itemKey)
+            local armorData = ItemConstants.Armor[itemKey]
+
+            if armorData.Health then
+                character.Humanoid.MaxHealth = math.floor(100 * armorData.Health)
+                character.Humanoid.Health = character.Humanoid.MaxHealth
+            end
+        end
+    else
+        warn(("[UserData] - Equipped %s successfully updated for player %i, player is not in-game.")
+            :format(itemType, userId))
+    end
 end
 
 -- Gives a player currency (As a reward, will avoid taking currency)
