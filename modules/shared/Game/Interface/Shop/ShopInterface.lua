@@ -4,17 +4,24 @@
 
 local require = require(game:GetService("ReplicatedStorage"):WaitForChild("Compliance"))
 
+local MarketplaceService = game:GetService("MarketplaceService")
+
 local BaseObject = require("BaseObject")
 local ScreenGuiProvider = require("ScreenGuiProvider")
 local GuiTemplateProvider = require("GuiTemplateProvider")
-
 local ShopData = require("ShopData")
+local Network = require("Network")
+local ShopConstants = require("ShopConstants")
+
+local DEFAULT_THUMBNAIL = "rbxassetid://12017700691"
 
 local ShopInterface = setmetatable({}, BaseObject)
 ShopInterface.__index = ShopInterface
 
 function ShopInterface.new(character)
     local self = setmetatable(BaseObject.new(character), ShopInterface)
+
+    self._remoteEvent = Network:GetRemoteEvent(ShopConstants.REMOTE_EVENT_NAME)
 
     self._orderedElements = {}
     self._displayedElements = {}
@@ -62,13 +69,32 @@ function ShopInterface:_setupGui()
         gridItem.Parent = self._scrollingFrame
 
         local orderedElements = {}
-        local itemLayoutOrder = 0
 
-        for _, itemData in pairs(shopCategory.Items) do
-            itemLayoutOrder += 1
-            print(itemData)
+        for itemKey, itemData in pairs(shopCategory.Items) do            
+            if itemData.NotBuyable then
+                continue
+            end
+            if not itemData.ProductId then
+                warn(("[ShopInterface] - Item %q has no ProductId!")
+                    :format(itemKey))
+                continue
+            end
+
             local itemGridItem = GuiTemplateProvider:Get("ItemGridItemTemplate")
+            local imageButton = itemGridItem.ImageButton
 
+            imageButton.ImageLabel.Image = itemData.Thumbnail or DEFAULT_THUMBNAIL
+            imageButton.BuyButton.TextLabel.Text = "..."
+            task.spawn(function()
+                local productInfo = MarketplaceService:GetProductInfo(itemData.ProductId, Enum.InfoType.Product)
+                imageButton.BuyButton.TextLabel.Text = ("R$%i"):format(productInfo.PriceInRobux)
+            end)
+
+            local function buyProduct()
+
+            end
+
+            local itemLayoutOrder = itemData.LayoutOrder or 1
             itemGridItem.LayoutOrder = itemLayoutOrder
             itemGridItem.TextLabel.Text = itemData.DisplayName
             itemGridItem.Visible = false
