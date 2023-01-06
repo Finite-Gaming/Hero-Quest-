@@ -5,7 +5,7 @@ local UIBlur = {}
 
 local blur = Instance.new("BlurEffect")
 blur.Enabled = false
-blur.Size = 0
+blur.Size = 12
 blur.Parent = Lighting
 
 local activeTween
@@ -15,12 +15,19 @@ local function stopTween()
 	end
 end
 
+function UIBlur:SetEnabled(bool)
+    if bool then
+        self:Enable()
+    else
+        self:Disable()
+    end
+end
+
 function UIBlur:Enable()
 	blur.Enabled = true
-	
 	stopTween()
 	activeTween = TweenService:Create(blur, TweenInfo.new(0.5, Enum.EasingStyle.Circular, Enum.EasingDirection.Out), {
-		Size = script:GetAttribute("BlurSize")
+		Size = 12;
 	})
 	activeTween:Play()
 end

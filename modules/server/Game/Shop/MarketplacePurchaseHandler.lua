@@ -1,4 +1,4 @@
----
+--- Handles item purchases, rewards players who've bought items (unfinished)
 -- @classmod MarketplacePurchaseHandler
 -- @author
 

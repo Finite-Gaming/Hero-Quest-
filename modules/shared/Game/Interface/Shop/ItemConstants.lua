@@ -1,3 +1,7 @@
+--- Holds all relevant data pertaining to items
+-- @classmod ItemConstants
+-- @author
+
 --[[ item data meta:
 
 [itemKey] = {

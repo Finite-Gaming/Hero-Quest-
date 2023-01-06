@@ -62,6 +62,7 @@ local MONTH = DAY * 30
     XP = int
 }]]
 local SpecialRewards = {
+    -- Special rewards are like "bundles" in a way, they are just a way to award a set of items at once
 	-- Default
 	Starter = {
 		Weapons = {
@@ -126,6 +127,7 @@ local secureOwnedItemTypeKeys = {
     Pets = true;
 }
 function UserData:AwardItem(userId, itemType, itemKey, amount)
+    -- Strict arg validating here as we dont want to corrupt data
     print(userId, itemType, itemKey, amount)
     amount = amount or 1
     assert(amount == amount and amount > 0, "Invalid amount")
@@ -150,8 +152,13 @@ end
 function UserData:GetOwnedItems(userId, itemType)
     assert(secureOwnedItemTypeKeys[itemType], "Invalid itemType")
 	local profile = UserData:GetProfile(userId)
+    local tableCopy = {} -- returning a reference can be bad here
 
-    return profile.Data[itemType]
+    for key, data in pairs(profile.Data[itemType]) do
+        tableCopy[key] = data
+    end
+
+    return tableCopy
 end
 
 -- Retrieves a user's profile and creates it if it does not exist

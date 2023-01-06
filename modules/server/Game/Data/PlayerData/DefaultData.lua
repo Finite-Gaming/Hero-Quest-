@@ -1,3 +1,7 @@
+--- Default data that will be given to first-time players
+-- @classmod DefaultData
+-- @author
+
 return {
 	Money = 0; -- int
 	XP = 0; -- int

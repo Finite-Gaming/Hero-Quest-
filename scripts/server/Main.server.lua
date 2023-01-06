@@ -8,6 +8,7 @@ workspace.Lobby.Assets:Destroy()
 
 require("ServerClassBinders"):Init()
 
+require("MarketplacePurchaseHandler"):Init()
 require("DamageFeedback"):Init()
 require("ArmorHandler"):Init()
 require("CharacterService"):Init()

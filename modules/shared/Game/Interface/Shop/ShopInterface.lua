@@ -1,4 +1,4 @@
----
+--- Shop gui for purchasing items with robux
 -- @classmod ShopInterface
 -- @author frick
 
@@ -12,8 +12,9 @@ local GuiTemplateProvider = require("GuiTemplateProvider")
 local ShopData = require("ShopData")
 local Network = require("Network")
 local ShopConstants = require("ShopConstants")
+local UIBlur = require("UIBlur")
 
-local DEFAULT_THUMBNAIL = "rbxassetid://12017700691"
+local DEFAULT_THUMBNAIL = "rbxassetid://12017700691" -- Image that will be displayed if an item is missing a thumbnail
 
 local ShopInterface = setmetatable({}, BaseObject)
 ShopInterface.__index = ShopInterface
@@ -21,10 +22,12 @@ ShopInterface.__index = ShopInterface
 function ShopInterface.new(character)
     local self = setmetatable(BaseObject.new(character), ShopInterface)
 
-    self._remoteEvent = Network:GetRemoteEvent(ShopConstants.REMOTE_EVENT_NAME)
+    self._remoteEvent = Network:GetRemoteEvent(ShopConstants.REMOTE_EVENT_NAME) -- Process buying items
+    -- (this should be changed to a RemoteFunction for user feedback, eg. the request was denied, play boowomp.mp3)
 
-    self._orderedElements = {}
-    self._displayedElements = {}
+    self._orderedElements = {} -- This table holds each category of item with its respective children
+    -- in the proper display order
+    self._displayedElements = {} -- This table holds the item gui elements that are currently being displayed
 
     self._screenGui = self._maid:AddTask(ScreenGuiProvider:Get("ShopInterface"))
     self._screenGui.IgnoreGuiInset = true
@@ -42,6 +45,7 @@ end
 
 function ShopInterface:SetEnabled(bool)
     self._screenGui.Enabled = bool
+    UIBlur:SetEnabled(bool)
 end
 
 function ShopInterface:IsEnabled()
@@ -90,7 +94,7 @@ function ShopInterface:_setupGui()
                 imageButton.BuyButton.TextLabel.Text = ("R$%i"):format(productInfo.PriceInRobux)
             end)
 
-            local function buyProduct()
+            local function buyProduct() -- Communicate with server, provide user feedback
 
             end
 
