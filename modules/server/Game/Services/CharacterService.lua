@@ -9,6 +9,7 @@ local CollectionService = game:GetService("CollectionService")
 
 local Network = require("Network")
 local CharacterServiceConstants = require("CharacterServiceConstants")
+local GameManager = require("GameManager")
 
 local CharacterService = {}
 
@@ -21,20 +22,24 @@ function CharacterService:Init()
         self:_handlePlayerAdded(player)
     end)
 
-    Network:GetRemoteFunction(CharacterServiceConstants.DONE_LOADING_REMOTE_FUNCTION_NAME).OnServerInvoke = function(player)
-        if not self._loadedPlayers[player] then
-            self._loadedPlayers[player] = true
-            player:LoadCharacter()
-            self._playerLoaded:Fire()
+    if GameManager:IsLobby() then
+        Network:GetRemoteFunction(CharacterServiceConstants.DONE_LOADING_REMOTE_FUNCTION_NAME).OnServerInvoke = function(player)
+            if not self._loadedPlayers[player] then
+                self._loadedPlayers[player] = true
+                player:LoadCharacter()
+                self._playerLoaded:Fire()
+            end
         end
     end
 end
 
 -- Binds connections to player
 function CharacterService:_handlePlayerAdded(player)
-	while not self._loadedPlayers[player] do
-		self._playerLoaded.Event:Wait()
-	end
+    if GameManager:IsLobby() then
+        while not self._loadedPlayers[player] do
+            self._playerLoaded.Event:Wait()
+        end
+    end
 
 	self:_handleCharacterAdded(player, player.Character)
 	player.CharacterAdded:Connect(function(character)

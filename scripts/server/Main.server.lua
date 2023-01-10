@@ -1,10 +1,10 @@
 --- Main injection point for the server
--- @classmod SettingsService
+-- @classmod Main
 -- @author frick
 
 local require = require(game:GetService("ReplicatedStorage"):WaitForChild("Compliance"))
 
-workspace.Lobby.Assets:Destroy()
+local GameManager = require("GameManager")
 
 require("ServerClassBinders"):Init()
 
@@ -14,9 +14,10 @@ require("ArmorHandler"):Init()
 require("CharacterService"):Init()
 require("SettingsService"):Init()
 require("ItemService"):Init()
-require("SpawnZoneHandler"):Init()
-require("PartyEventHandler"):Init()
 require("PlayerNoCollideService"):Init()
-require("AlphaRewardService"):Init()
 
-require("PartyHandler") -- TODO: Init method
+if GameManager:IsLobby() then
+    require("LobbyInit"):Init()
+elseif GameManager:IsDungeon() then
+    require("DungeonInit"):Init()
+end
