@@ -4,8 +4,6 @@
 
 local require = require(game:GetService("ReplicatedStorage"):WaitForChild("Compliance"))
 
-local PathfindingService = game:GetService("PathfindingService")
-
 local DebugVisualizer = require("DebugVisualizer")
 local BaseObject = require("BaseObject")
 local Raycaster = require("Raycaster")
@@ -32,20 +30,43 @@ function NPC.new(obj)
 
     self._nodeSpacing = self._patrolPointsFolder:GetAttribute("Spacing")
     self._neighborOffsets = {
-        Vector2.new(1, 0) * self._nodeSpacing;
-        Vector2.new(-1, 0) * self._nodeSpacing;
-        Vector2.new(0, 1) * self._nodeSpacing;
-        Vector2.new(0, -1) * self._nodeSpacing;
+        Vector3.new(1, 0, 0) * self._nodeSpacing;
+        Vector3.new(-1, 0, 0) * self._nodeSpacing;
+        Vector3.new(0, 0, 1) * self._nodeSpacing;
+        Vector3.new(0, 0, -1) * self._nodeSpacing;
     }
 
     self._nodeHashmap = {}
     for _, patrolPoint in ipairs(self._patrolPoints) do
-        self._nodeHashmap[self:_encodePos(patrolPoint.WorldPosition)] = patrolPoint
+        local nodePos = patrolPoint.Position
+
+        local roundedX = math.round(nodePos.X)
+        if nodePos.X ~= roundedX then
+            patrolPoint.Position = Vector3.new(nodePos.X, nodePos.Y, roundedX)
+        end
+
+        local roundedZ = math.round(nodePos.Z)
+        if nodePos.Z ~= roundedZ then
+            patrolPoint.Position = Vector3.new(nodePos.X, nodePos.Y, roundedZ)
+        end
+        nodePos = patrolPoint.Position
+
+        local row = self._nodeHashmap[nodePos.X]
+
+        if not row then
+            row = {}
+            self._nodeHashmap[nodePos.X] = row
+        end
+        row[nodePos.Z] = patrolPoint
+    end
+
+    self._neighborMap = {}
+    for _, point in ipairs(self._patrolPoints) do
+        self._neighborMap[point] = self:_getNeighbors(point)
     end
 
     self._waypoint = self._patrolPoints[1]
-    self._waypoints = self:_pathfind(self._waypoint, self._patrolPoints[40])
-    self:_buildDebugPath()
+    self:_startPatrol()
 
     return self
 end
@@ -64,89 +85,117 @@ function NPC:_buildDebugPath()
     end
 end
 
-function NPC:_encodePos(position)
-    return Vector2.new(position.X, position.Z)
-end
-
-function NPC:_decodePos(position)
-    return Vector3.new(position.X, self._humanoidRootPart.Position.Y, position.Y)
-end
-
 function NPC:_getNeighbors(node)
     local neighbors = {}
-    local nodePos = self:_encodePos(node.WorldPosition)
-    for pointPos, point in pairs(self._nodeHashmap) do
-        if node == point then
+    local neighborCount = 0
+
+    for _, offset in ipairs(self._neighborOffsets) do
+        local newPos = node.Position + offset
+        local row = self._nodeHashmap[newPos.X]
+        if not row then
             continue
         end
 
-        local dist = (pointPos - nodePos).Magnitude - 0.05
-        if dist > 0 and dist < self._nodeSpacing then
-            table.insert(neighbors, point)
-        end
+        local neighbor = row[newPos.Z]
+        if neighbor then
+            table.insert(neighbors, neighbor)
+            --DebugVisualizer:LookAtPart(node.WorldPosition, neighbor.WorldPosition, 0.95, 0.05)
+            neighborCount += 1
 
-        if #neighbors == 4 then
-            break
+            if neighborCount == 4 then
+                break
+            end
         end
     end
 
     return neighbors
 end
 
-function NPC:_reconstructPath(previous, startPoint, goalPoint)
-    local path = {goalPoint}
-    local current = goalPoint
-
-    while current ~= startPoint do
-        current = previous[current]
+function NPC:_constructPath(cameFrom, current)
+    local path = {current}
+    while cameFrom[current] do
+        current = cameFrom[current]
         table.insert(path, 1, current)
     end
-
     return path
 end
 
+function NPC:_getNodeDistance(nodeA, nodeB)
+    local aPos, bPos = nodeA.Position, nodeB.Position
+    return math.sqrt((bPos.X - aPos.X)^2 + (bPos.Z - aPos.Z)^2)
+end
+
+function NPC:_getLowestFScore(openSet, fScore)
+    local lowestNode, lowestFScore = nil, math.huge
+    for node, _ in pairs(openSet) do
+        if fScore[node] < lowestFScore then
+            lowestNode = node
+            lowestFScore = fScore[node]
+        end
+    end
+    return lowestNode
+end
+
 function NPC:_pathfind(startPoint, goalPoint)
-    local queue = Queue.new()
-    queue:Push(startPoint)
+    local openSet = {[startPoint] = true}
+    local closedSet = {}
+    local gScore = {[startPoint] = 0 }
+    local fScore = {[startPoint] = self:_getNodeDistance(startPoint, goalPoint)}
+    local cameFrom = {}
 
-    DebugVisualizer:LookAtPart(startPoint.WorldPosition, goalPoint.WorldPosition, 0.8)
-
-    local visited = {}
-    local previous = {}
-
-    while not queue:IsEmpty() do
-        local current = queue:Pop()
-        visited[current] = true
-
+    while next(openSet) ~= nil do
+        local current = self:_getLowestFScore(openSet, fScore)
         if current == goalPoint then
-            return self:_reconstructPath(previous, startPoint, goalPoint)
+            return self:_constructPath(cameFrom, current)
         end
 
+        openSet[current] = nil
+        closedSet[current] = true
+
         local neighbors = self:_getNeighbors(current)
-        print(neighbors)
-        for _, neighbor in pairs(neighbors) do
-            if not visited[neighbor] then
-                queue:Push(neighbor)
-                previous[neighbor] = current
+        for _, neighbor in ipairs(neighbors) do
+            if closedSet[neighbor] then
+                continue
+            end
+
+            local tentativeGScore = gScore[current] + self:_getNodeDistance(current, neighbor)
+            if not openSet[neighbor] or tentativeGScore < gScore[neighbor] then
+                cameFrom[neighbor] = current
+                gScore[neighbor] = tentativeGScore
+                fScore[neighbor] = gScore[neighbor] + self:_getNodeDistance(neighbor, goalPoint)
+
+                if not openSet[neighbor] then
+                    openSet[neighbor] = true
+                end
             end
         end
     end
-
-    return nil
 end
 
-function NPC:_moveToPoint(point)
-    
-end
-
-function NPC:_moveRandom()
+function NPC:_startPatrol()
     local point = self:_getRandomPoint()
     if not point then
         warn("[NPC] - Failed to get pathfinding point")
         return
     end
 
-    self:_moveToPoint(point.Position)
+    local oldWaypoint = self._waypoint
+    self._waypoint = point
+    self._waypoints = self:_pathfind(oldWaypoint, self._waypoint)
+    self:_buildDebugPath()
+
+    for _, nextPoint in ipairs(self._waypoints) do
+        local humanoidPosition, pointPosition = self._humanoidRootPart.Position, nextPoint.WorldPosition
+        local walkTime = math.sqrt((pointPosition.X - humanoidPosition.X)^2 + (pointPosition.Z - humanoidPosition.Z)^2)/self._humanoid.WalkSpeed
+
+        self._humanoid:MoveTo(pointPosition)
+        self._waypoint = nextPoint
+
+        task.wait(walkTime - (1/30))
+    end
+
+    task.wait(4)
+    self:_startPatrol()
 end
 
 function NPC:_getRandomPoint()
@@ -163,7 +212,7 @@ function NPC:_getRandomPoint()
     end
     self._lastPoint = newPoint
 
-    return newPoint.Position
+    return newPoint
 end
 
 return NPC

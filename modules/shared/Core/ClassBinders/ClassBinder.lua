@@ -13,12 +13,13 @@ ClassBinder.__index = ClassBinder
 
 function ClassBinder.new(name, class)
     local self = setmetatable({}, ClassBinder)
-
     self._name = name
     self._class = class
     self._boundInstances = {}
+    self._processingInstances = {} -- Cope with yielding constructors
 
     self.InstanceAdded = Signal.new()
+    self.InstanceRemoving = Signal.new()
 
     for _, instance in ipairs(CollectionService:GetTagged(self._name)) do
         task.spawn(self._bind, self, instance)
@@ -32,7 +33,10 @@ function ClassBinder.new(name, class)
             return
         end
 
-        boundClass:Destroy()
+        self.InstanceRemoving:Fire(instance)
+        if boundClass.Destroy then
+            boundClass:Destroy()
+        end
         self._boundInstances[instance] = nil
     end)
 
@@ -45,16 +49,27 @@ function ClassBinder:_bind(instance)
         return oldClass
     end
 
+    if self._processingInstances[instance] then
+        return
+    end
+
+    self._processingInstances[instance] = true
     local newClass = self._class.new(instance)
     self._boundInstances[instance] = newClass
     self.InstanceAdded:Fire(instance)
+    self._processingInstances[instance] = nil
+
     return newClass
 end
 
 function ClassBinder:Bind(instance)
     CollectionService:AddTag(instance, self._name)
 
-    return self:Get(instance) or self:_bind(instance)
+    return self:Get(instance)
+end
+
+function ClassBinder:BindAsync(instance)
+    return self:Bind(instance) or self:GetAsync(instance)
 end
 
 function ClassBinder:Unbind(instance)
@@ -66,11 +81,12 @@ function ClassBinder:Get(instance)
 end
 
 function ClassBinder:GetAsync(instance)
+    local currentThread = coroutine.running()
+
     local class = self:Get(instance)
     if class then
         return class
     end
-    local currentThread = coroutine.running()
 
     local once; once = self.InstanceAdded:Connect(function(inst)
         if inst == instance then

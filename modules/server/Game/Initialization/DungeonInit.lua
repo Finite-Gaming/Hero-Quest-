@@ -8,7 +8,7 @@ local DungeonInit = {}
 
 function DungeonInit:Init()
     require("ServerTemplateProvider"):Init()
-    require("NPCSpawner"):SpawnEnemies(workspace.NPC["1"])
+    require("NPCSpawner"):Init()
 end
 
 return DungeonInit
