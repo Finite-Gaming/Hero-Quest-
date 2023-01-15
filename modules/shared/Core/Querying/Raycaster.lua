@@ -32,6 +32,10 @@ function Raycaster:Ignore(object)
     self:_updateParams()
 end
 
+function Raycaster:CastTo(origin, pointB)
+    return self:Cast(origin, (origin - pointB))
+end
+
 function Raycaster:Cast(origin, direction)
 	for _ = 1, self.MaxCasts do
         local castSuccess, hitData = self:_tryCast(origin, direction)
@@ -53,7 +57,11 @@ function Raycaster:_tryCast(origin, direction)
 
     if result then
         if self.Visualize then
-            DebugVisualizer:LookAtPart(origin, result.Position, 0.3, 0.05)
+            local part = DebugVisualizer:LookAtPart(origin, result.Position, 0.3, 0.05)
+
+            task.delay(0.3, function()
+                part:Destroy()
+            end)
         end
 
         if self.Filter and self.Filter(result) then
@@ -65,7 +73,11 @@ function Raycaster:_tryCast(origin, direction)
     end
 
     if self.Visualize then
-        DebugVisualizer:LookAtPart(origin, origin + direction, 0.3, 0.05)
+        local part = DebugVisualizer:LookAtPart(origin, origin + direction, 0.3, 0.05)
+
+        task.delay(0.3, function()
+            part:Destroy()
+        end)
     end
 
     return true

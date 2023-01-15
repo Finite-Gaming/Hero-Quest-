@@ -15,4 +15,6 @@ return ClassBinderProvider.new(function(self)
     self:AddClassBinder(ClassBinder.new("CandleFlicker", require("CandleFlicker")))
 
     self:AddClassBinder(ClassBinder.new("MeleeWeapon", require("MeleeWeapon")))
+
+    self:AddClassBinder(ClassBinder.new("NPC", require("NPC")))
 end)
