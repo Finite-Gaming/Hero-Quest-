@@ -16,7 +16,7 @@ function NPCSpawner:Init()
     PhysicsService:RegisterCollisionGroup("NPC")
     PhysicsService:CollisionGroupSetCollidable("NPC", "NPC", false)
 
-    for _ = 1, 3 do
+    for _ = 1, 1 do
         self:SpawnEnemy(workspace.NPC["1"])
     end
 end

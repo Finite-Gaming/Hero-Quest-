@@ -4,10 +4,26 @@
 
 local require = require(game:GetService("ReplicatedStorage"):WaitForChild("Compliance"))
 
+local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
+
 local DebugVisualizer = require("DebugVisualizer")
 local BaseObject = require("BaseObject")
 local Raycaster = require("Raycaster")
-local Queue = require("Queue")
+local AnimationTrack = require("AnimationTrack")
+local WeldUtils = require("WeldUtils")
+local Hitscan = require("Hitscan")
+local HumanoidUtils = require("HumanoidUtils")
+local DamageFeedback = require("DamageFeedback")
+
+local DEBUG_ENABLED = true
+
+local ENEMY_SETTINGS = {
+    WalkSpeed = 10;
+    RunSpeed = 12;
+    PursueAngle = 105;
+    PursueRange = 12;
+}
 
 local NPC = setmetatable({}, BaseObject)
 NPC.__index = NPC
@@ -22,13 +38,49 @@ function NPC.new(obj)
     self._humanoid = assert(self._obj:FindFirstChildOfClass("Humanoid"))
     self._humanoidRootPart = assert(self._obj:FindFirstChild("HumanoidRootPart"))
 
+    -- Setup
+    self._humanoid.WalkSpeed = ENEMY_SETTINGS.WalkSpeed
+    self._pursueAngle = math.rad(ENEMY_SETTINGS.PursueAngle)
+
     self._oldDebugParts = {}
 
     self._raycaster = Raycaster.new()
     self._raycaster:Ignore(self._obj)
-    self._raycaster.Visualize = true
+    self._raycaster.Visualize = DEBUG_ENABLED
 
+    self._hitscan = Hitscan.new(self._obj.BasicMace, self._raycaster)
+    self._maid:AddTask(self._hitscan.Hit:Connect(function(raycastResult)
+        local humanoid = HumanoidUtils.getHumanoid(raycastResult.Instance)
+        if humanoid then
+            if not humanoid:GetAttribute("Invincible") then
+                humanoid:TakeDamage(10)
+            end
+
+            DamageFeedback:SendFeedback(humanoid, 10, raycastResult.Position)
+        end
+    end))
+
+    if DEBUG_ENABLED then
+        local rootCFrame = self._humanoidRootPart.CFrame
+        local posA = (rootCFrame * CFrame.Angles(0, math.pi + self._pursueAngle/2, 0) * CFrame.new(0, 0, ENEMY_SETTINGS.PursueRange)).Position
+        local posB = (rootCFrame * CFrame.Angles(0, math.pi + -self._pursueAngle/2, 0) * CFrame.new(0, 0, ENEMY_SETTINGS.PursueRange)).Position
+
+        local partA = DebugVisualizer:LookAtPart(rootCFrame.Position, posA)
+        local partB = DebugVisualizer:LookAtPart(rootCFrame.Position, posB)
+
+        local relativeA, relativeB = rootCFrame:ToObjectSpace(partA.CFrame), rootCFrame:ToObjectSpace(partB.CFrame)
+
+        partA.Anchored = false
+        partB.Anchored = false
+
+        WeldUtils.weld(self._humanoidRootPart, partA, relativeA)
+        WeldUtils.weld(self._humanoidRootPart, partB, relativeB)
+    end
+
+    -- Pathfinding
     self._nodeSpacing = self._patrolPointsFolder:GetAttribute("Spacing")
+    self._maxNodeSpace = math.sqrt(self._nodeSpacing ^ 2 * 2)
+
     self._neighborOffsets = {
         Vector3.new(1, 0, 0) * self._nodeSpacing;
         Vector3.new(-1, 0, 0) * self._nodeSpacing;
@@ -64,6 +116,25 @@ function NPC.new(obj)
     for _, point in ipairs(self._patrolPoints) do
         self._neighborMap[point] = self:_getNeighbors(point)
     end
+
+    -- Animation
+    self._animations = {}
+    self._attackAnimations = {}
+    for _, animation in ipairs(self._obj.Animations:GetChildren()) do
+        if animation:IsA("Folder") and animation.Name == "Attacks" then
+            for _, attackAnimation in ipairs(animation:GetChildren()) do
+                table.insert(self._attackAnimations, AnimationTrack.new(attackAnimation, self._humanoid))
+            end
+
+            continue
+        end
+
+        self._animations[animation.Name] = AnimationTrack.new(animation, self._humanoid)
+    end
+
+    self._maid:AddTask(self._humanoid.Died:Connect(function()
+        self:Destroy()
+    end))
 
     self._waypoint = self._patrolPoints[1]
     self:_startPatrol()
@@ -172,7 +243,146 @@ function NPC:_pathfind(startPoint, goalPoint)
     end
 end
 
+function NPC:_canSeeNode(pos, node)
+    local nodePos = node.WorldPosition
+    local origin = Vector3.new(pos.X, nodePos.Y, pos.Z)
+    local rayResult = self._raycaster:Cast(origin, (nodePos - origin).Unit * self._maxNodeSpace)
+
+    return rayResult == nil
+end
+
 function NPC:_startPatrol()
+    self._maid.PatrolThread = task.spawn(function()
+        while true do
+            self:_randomPath()
+            task.wait(4)
+        end
+    end)
+
+    self._maid.PatrolUpdate = RunService.Heartbeat:Connect(function()
+        local lookDirection = self._humanoidRootPart.CFrame.LookVector
+
+        for _, player in ipairs(Players:GetPlayers()) do
+            local character = player.Character
+            if not character then
+                continue
+            end
+
+            local humanoid = character:FindFirstChild("Humanoid")
+            if not humanoid then
+                continue
+            end
+
+            local rootPart = humanoid.RootPart
+            if not rootPart then
+                continue
+            end
+            if humanoid.Health <= 0 then
+                continue
+            end
+
+            local rootPos = rootPart.Position
+            local difference = rootPos - self._humanoidRootPart.Position
+            if difference.Magnitude > ENEMY_SETTINGS.PursueRange then
+                continue
+            end
+
+            if math.acos(lookDirection:Dot(difference.Unit)) > self._pursueAngle/2 then
+                continue
+            end
+
+            local rayResult = self._raycaster:Cast(self._humanoidRootPart.Position, (rootPos - self._humanoidRootPart.Position))
+            if rayResult and rayResult.Instance:IsDescendantOf(character) then
+                self:_stopPatrol()
+                self:_startPursuit(character)
+                return
+            end
+        end
+    end)
+end
+
+function NPC:_startPursuit(character)
+    self._animations.Walk:Stop()
+
+    self._maid.PursuitUpdate = RunService.Heartbeat:Connect(function()
+        local humanoid = character:FindFirstChild("Humanoid")
+        if not humanoid then
+            self:_stopPursuit()
+            return
+        end
+
+        local rootPart = humanoid.RootPart
+        if not rootPart then
+            self:_stopPursuit()
+            return
+        end
+        if humanoid.Health <= 0 then
+            self:_stopPursuit()
+            return
+        end
+
+        local rootPos = rootPart.Position
+        local posDiff = (rootPos - self._humanoidRootPart.Position)
+        local rayResult = self._raycaster:Cast(self._humanoidRootPart.Position, posDiff)
+        if not rayResult or not rayResult.Instance:IsDescendantOf(character) then
+            self:_stopPursuit()
+            return
+        end
+
+        if posDiff.Magnitude < 3 then
+            if self._animations.Walk.IsPlaying then
+                self._animations.Walk:Stop()
+            end
+            self._humanoid:MoveTo(self._humanoidRootPart.Position)
+            self._attackAnimations[math.random(1, #self._attackAnimations)]:Play()
+            self._maid.PursuitUpdate = nil
+            task.wait(1)
+            self:_startPursuit(character)
+            return
+        end
+
+        if not self._animations.Walk.IsPlaying then
+            self._animations.Walk:Play()
+        end
+
+        self._humanoid:MoveTo(rootPos)
+    end)
+end
+
+function NPC:_stopPursuit()
+    self._maid.PursuitUpdate = nil
+    if self._animations.Walk.IsPlaying then
+        self._animations.Walk:Stop()
+    end
+
+    self._waypoint = self:_getClosestNode()
+    self:_startPatrol()
+end
+
+function NPC:_getClosestNode()
+    local rootPos = self._humanoidRootPart.Position
+    local fallback, closest, closestDist = nil, nil, math.huge
+    for _, node in pairs(self._patrolPoints) do
+        local dist = (node.WorldPosition - rootPos).Magnitude
+        if dist < closestDist then
+            fallback = node
+
+            if self:_canSeeNode(rootPos, node) then
+                closestDist = dist
+                closest = node
+            end
+        end
+    end
+
+    return closest or fallback
+end
+
+function NPC:_stopPatrol()
+    self._maid.PatrolThread = nil
+    self._maid.PatrolUpdate = nil
+end
+
+function NPC:_randomPath()
     local point = self:_getRandomPoint()
     if not point then
         warn("[NPC] - Failed to get pathfinding point")
@@ -182,7 +392,12 @@ function NPC:_startPatrol()
     local oldWaypoint = self._waypoint
     self._waypoint = point
     self._waypoints = self:_pathfind(oldWaypoint, self._waypoint)
-    self:_buildDebugPath()
+
+    if DEBUG_ENABLED then
+        self:_buildDebugPath()
+    end
+
+    self._animations.Walk:Play()
 
     for _, nextPoint in ipairs(self._waypoints) do
         local humanoidPosition, pointPosition = self._humanoidRootPart.Position, nextPoint.WorldPosition
@@ -191,11 +406,10 @@ function NPC:_startPatrol()
         self._humanoid:MoveTo(pointPosition)
         self._waypoint = nextPoint
 
-        task.wait(walkTime - (1/30))
+        task.wait(walkTime - (1/5))
     end
 
-    task.wait(4)
-    self:_startPatrol()
+    self._animations.Walk:Stop()
 end
 
 function NPC:_getRandomPoint()

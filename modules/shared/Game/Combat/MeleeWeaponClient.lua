@@ -6,13 +6,13 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local require = require(ReplicatedStorage:WaitForChild("Compliance"))
 
-local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 
 local AnimationTrack = require("AnimationTrack")
 local BaseObject = require("BaseObject")
 local Raycaster = require("Raycaster")
 local MeleeWeaponConstants = require("MeleeWeaponConstants")
+local Hitscan = require("Hitscan")
 
 local ANIMATIONS = ReplicatedStorage:WaitForChild("Animations"):WaitForChild("Weapon")
 local GENERIC_ANIMATIONS = ANIMATIONS:WaitForChild("Generic")
@@ -52,16 +52,10 @@ function MeleeWeaponClient.new(obj)
 
     self._remoteEvent = self._obj:WaitForChild(MeleeWeaponConstants.REMOTE_EVENT_NAME)
 
-    self._hitscanAttachments = {}
-    for _, hitscanAttachment in ipairs(self._handle:GetChildren()) do
-        if hitscanAttachment.Name ~= "HitscanAttachment" then
-            continue
-        end
-
-        table.insert(self._hitscanAttachments, hitscanAttachment)
-    end
-    self._prevPositions = table.create(#self._hitscanAttachments)
-    self._cachedHits = {}
+    self._hitscan = Hitscan.new(self._handle, self._raycaster)
+    self._hitscan.Hit:Connect(function(raycastResult)
+        self:_handleHit(raycastResult)
+    end)
 
     if self._animationType == "OneHanded" then
         self._animationFolder = ONE_HANDED_ANIMATIONS
@@ -136,34 +130,11 @@ function MeleeWeaponClient:_tryAttack()
 end
 
 function MeleeWeaponClient:_startHitscan()
-    table.clear(self._prevPositions)
-    table.clear(self._cachedHits)
-
-    self._maid.HitscanUpdate = RunService.Heartbeat:Connect(function()
-		for index, attachment in ipairs(self._hitscanAttachments) do
-			local worldPos = attachment.WorldPosition
-			local origin = self._prevPositions[index] or worldPos
-
-			self._prevPositions[index] = worldPos
-
-            local direction = (worldPos - origin)
-			local raycastResult = self._raycaster:Cast(origin, direction)
-
-			if raycastResult then
-                local instance = raycastResult.Instance
-                if self._cachedHits[instance] then
-                    return
-                end
-                self._cachedHits[instance] = true
-
-                self:_handleHit(raycastResult)
-			end
-		end
-	end)
+    self._hitscan:Start()
 end
 
 function MeleeWeaponClient:_stopHitscan()
-    self._maid.HitscanUpdate = nil
+    self._hitscan:Stop()
 end
 
 function  MeleeWeaponClient:_handleHit(raycastResult)

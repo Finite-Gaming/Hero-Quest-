@@ -9,10 +9,7 @@ function WeldUtils.weld(partA, partB, offset)
 
     weld.Part0 = partA
     weld.Part1 = partB
-    -- if offset then
-    --     weld.C0 = offset
-    -- end
-    weld.C0 = partA.CFrame:ToObjectSpace(partB.CFrame)
+    weld.C0 = offset or partA.CFrame:ToObjectSpace(partB.CFrame)
     weld.Parent = partA
 
     return weld
