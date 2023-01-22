@@ -9,6 +9,7 @@ local DungeonInit = {}
 function DungeonInit:Init()
     require("ServerTemplateProvider"):Init()
     require("NPCSpawner"):Init()
+    require("TeamLocker"):Init()
 end
 
 return DungeonInit

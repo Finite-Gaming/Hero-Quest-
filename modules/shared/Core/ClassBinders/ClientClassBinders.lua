@@ -15,4 +15,8 @@ return ClassBinderProvider.new(function(self)
 
     -- Tools
     self:AddClassBinder(ClassBinder.new("MeleeWeapon", require("MeleeWeaponClient")))
+
+    -- Traps
+    self:AddClassBinder(ClassBinder.new("Spikes", require("SpikesClient")))
+    self:AddClassBinder(ClassBinder.new("Axe", require("AxeClient")))
 end)

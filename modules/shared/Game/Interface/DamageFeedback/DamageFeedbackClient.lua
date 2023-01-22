@@ -33,6 +33,16 @@ function DamageFeedbackClient:Init()
 end
 
 function DamageFeedbackClient:_handleClientEvent(humanoid, damage, position)
+    if not position then
+        local rootPart = humanoid.RootPart
+        if not rootPart then
+            warn("[DamageFeedbackClient] - No RootPart")
+            return
+        end
+
+        position = rootPart.Position
+    end
+
     local dummyPart = DebugVisualizer:GhostPart()
     local randomPos = position + self:_getRandomOffset()
     dummyPart.Transparency = 1

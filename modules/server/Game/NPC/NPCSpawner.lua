@@ -16,7 +16,11 @@ function NPCSpawner:Init()
     PhysicsService:RegisterCollisionGroup("NPC")
     PhysicsService:CollisionGroupSetCollidable("NPC", "NPC", false)
 
-    for _ = 1, 1 do
+    for _, masterPart in ipairs(workspace.PatrolPoints:GetChildren()) do
+        masterPart.Transparency = 1
+    end
+
+    for _ = 1, 5 do
         self:SpawnEnemy(workspace.NPC["1"])
     end
 end

@@ -10,11 +10,18 @@ local ClassBinderProvider = require("ClassBinderProvider")
 return ClassBinderProvider.new(function(self)
     self:AddClassBinder(ClassBinder.new("Portal", require("PortalTeleport")))
 
-    self:AddClassBinder(ClassBinder.new("Seat", require("Seat"))) -- Binder name, class
+    -- Traps
+    self:AddClassBinder(ClassBinder.new("Spikes", require("Spikes")))
+    self:AddClassBinder(ClassBinder.new("Axe", require("Axe")))
+
+    -- Misc
+    self:AddClassBinder(ClassBinder.new("Seat", require("Seat")))
     self:AddClassBinder(ClassBinder.new("IdleAnimation", require("IdleAnimation")))
     self:AddClassBinder(ClassBinder.new("CandleFlicker", require("CandleFlicker")))
 
+    -- Tools
     self:AddClassBinder(ClassBinder.new("MeleeWeapon", require("MeleeWeapon")))
 
+    -- NPC
     self:AddClassBinder(ClassBinder.new("NPC", require("NPC")))
 end)

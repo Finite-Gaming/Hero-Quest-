@@ -1,6 +1,6 @@
 ---
 -- @classmod NPC
--- @author
+-- @author frick
 
 local require = require(game:GetService("ReplicatedStorage"):WaitForChild("Compliance"))
 
@@ -16,13 +16,18 @@ local Hitscan = require("Hitscan")
 local HumanoidUtils = require("HumanoidUtils")
 local DamageFeedback = require("DamageFeedback")
 
-local DEBUG_ENABLED = true
+local DEBUG_ENABLED = false -- Setting this to true will show debug ray parts, and display the NPC's FOV
 
 local ENEMY_SETTINGS = {
-    WalkSpeed = 10;
-    RunSpeed = 12;
-    PursueAngle = 105;
-    PursueRange = 12;
+    WalkSpeed = 10; -- Speed the NPC will travel while patroling
+    RunSpeed = 14; -- Speed the NPC will travel when pursuing a player
+    PursueAngle = 105; -- The FOV of the NPC's detection range
+    PursueRange = 12; -- The max distance a player can be from the NPC to be detected
+    AttackRefresh = 0.3; -- The amount of time waited after an attack
+    PathingCooldown = 3; -- The amount of time waited between re-pathing when patroling
+
+    MinDamage = 10;
+    MaxDamage = 20;
 }
 
 local NPC = setmetatable({}, BaseObject)
@@ -42,22 +47,40 @@ function NPC.new(obj)
     self._humanoid.WalkSpeed = ENEMY_SETTINGS.WalkSpeed
     self._pursueAngle = math.rad(ENEMY_SETTINGS.PursueAngle)
 
+    self._healthBar = self._humanoidRootPart.HealthBar
+    self._healthAccentBar = self._healthBar.CanvasGroup.AccentBar
+
     self._oldDebugParts = {}
 
     self._raycaster = Raycaster.new()
-    self._raycaster:Ignore(self._obj)
+    self._raycaster:Ignore(workspace.NPC)
     self._raycaster.Visualize = DEBUG_ENABLED
 
     self._hitscan = Hitscan.new(self._obj.BasicMace, self._raycaster)
+    self._cachedHits = {}
     self._maid:AddTask(self._hitscan.Hit:Connect(function(raycastResult)
         local humanoid = HumanoidUtils.getHumanoid(raycastResult.Instance)
         if humanoid then
+            if self._cachedHits[humanoid] then
+                return
+            end
+            self._cachedHits[humanoid] = true
+
+            local damage = math.random(ENEMY_SETTINGS.MinDamage, ENEMY_SETTINGS.MaxDamage)
             if not humanoid:GetAttribute("Invincible") then
-                humanoid:TakeDamage(10)
+                humanoid:TakeDamage(damage)
             end
 
-            DamageFeedback:SendFeedback(humanoid, 10, raycastResult.Position)
+            DamageFeedback:SendFeedback(humanoid, damage, raycastResult.Position)
         end
+    end))
+
+    self:_updateHealthBar()
+    self._maid:AddTask(self._humanoid:GetPropertyChangedSignal("Health"):Connect(function()
+        self:_updateHealthBar()
+    end))
+    self._maid:AddTask(self._humanoid:GetPropertyChangedSignal("MaxHealth"):Connect(function()
+        self:_updateHealthBar()
     end))
 
     if DEBUG_ENABLED then
@@ -133,13 +156,27 @@ function NPC.new(obj)
     end
 
     self._maid:AddTask(self._humanoid.Died:Connect(function()
-        self:Destroy()
+        task.wait(1)
+        self._obj:Destroy()
     end))
 
     self._waypoint = self._patrolPoints[1]
     self:_startPatrol()
 
     return self
+end
+
+function NPC:_updateHealthBar()
+    self._healthAccentBar.Size = UDim2.fromScale(self._humanoid.Health/self._humanoid.MaxHealth, 1)
+end
+
+function NPC:_attack()
+    local attackAnim = self._attackAnimations[math.random(1, #self._attackAnimations)]
+    attackAnim:Play()
+    self._hitscan:Start()
+    attackAnim.Stopped:Wait()
+    self._hitscan:Stop()
+    table.clear(self._cachedHits)
 end
 
 function NPC:_buildDebugPath()
@@ -255,7 +292,7 @@ function NPC:_startPatrol()
     self._maid.PatrolThread = task.spawn(function()
         while true do
             self:_randomPath()
-            task.wait(4)
+            task.wait(ENEMY_SETTINGS.PathingCooldown)
         end
     end)
 
@@ -303,6 +340,7 @@ end
 
 function NPC:_startPursuit(character)
     self._animations.Walk:Stop()
+    self._humanoid.WalkSpeed = ENEMY_SETTINGS.RunSpeed
 
     self._maid.PursuitUpdate = RunService.Heartbeat:Connect(function()
         local humanoid = character:FindFirstChild("Humanoid")
@@ -330,19 +368,21 @@ function NPC:_startPursuit(character)
         end
 
         if posDiff.Magnitude < 3 then
-            if self._animations.Walk.IsPlaying then
-                self._animations.Walk:Stop()
+            if self._animations.Run.IsPlaying then
+                self._animations.Run:Stop()
             end
+
             self._humanoid:MoveTo(self._humanoidRootPart.Position)
-            self._attackAnimations[math.random(1, #self._attackAnimations)]:Play()
             self._maid.PursuitUpdate = nil
-            task.wait(1)
+            self:_attack()
+
+            task.wait(ENEMY_SETTINGS.AttackRefresh)
             self:_startPursuit(character)
             return
         end
 
-        if not self._animations.Walk.IsPlaying then
-            self._animations.Walk:Play()
+        if not self._animations.Run.IsPlaying then
+            self._animations.Run:Play()
         end
 
         self._humanoid:MoveTo(rootPos)
@@ -350,9 +390,10 @@ function NPC:_startPursuit(character)
 end
 
 function NPC:_stopPursuit()
+    self._humanoid.WalkSpeed = ENEMY_SETTINGS.WalkSpeed
     self._maid.PursuitUpdate = nil
-    if self._animations.Walk.IsPlaying then
-        self._animations.Walk:Stop()
+    if self._animations.Run.IsPlaying then
+        self._animations.Run:Stop()
     end
 
     self._waypoint = self:_getClosestNode()
