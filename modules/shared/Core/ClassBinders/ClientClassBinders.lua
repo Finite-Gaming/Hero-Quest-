@@ -13,6 +13,9 @@ return ClassBinderProvider.new(function(self)
     self:AddClassBinder(ClassBinder.new("MainButtonsInterface", require("MainButtonsInterface")))
     self:AddClassBinder(ClassBinder.new("ShopInterface", require("ShopInterface")))
 
+    -- Misc
+    self:AddClassBinder(ClassBinder.new("HumanoidLocker", require("HumanoidLocker")))
+
     -- Tools
     self:AddClassBinder(ClassBinder.new("MeleeWeapon", require("MeleeWeaponClient")))
 

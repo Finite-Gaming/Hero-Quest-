@@ -56,6 +56,12 @@ function ClassBinder:_bind(instance)
     self._processingInstances[instance] = true
     local newClass = self._class.new(instance)
     self._boundInstances[instance] = newClass
+    if newClass then
+        newClass.Destroying:Connect(function()
+            self._boundInstances[instance] = nil
+            self:Unbind(instance)
+        end)
+    end
     self.InstanceAdded:Fire(instance)
     self._processingInstances[instance] = nil
 

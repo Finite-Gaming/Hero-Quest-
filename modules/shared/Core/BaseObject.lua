@@ -20,6 +20,10 @@ function BaseObject.new(obj)
     return self
 end
 
+function BaseObject:GetObject()
+    return self._obj
+end
+
 function BaseObject:Destroy()
     self.Destroying:Fire()
     self._maid:Destroy()

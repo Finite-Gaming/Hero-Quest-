@@ -15,6 +15,7 @@ local WeldUtils = require("WeldUtils")
 local Hitscan = require("Hitscan")
 local HumanoidUtils = require("HumanoidUtils")
 local DamageFeedback = require("DamageFeedback")
+local ServerClassBinders = require("ServerClassBinders")
 
 local DEBUG_ENABLED = false -- Setting this to true will show debug ray parts, and display the NPC's FOV
 
@@ -72,6 +73,19 @@ function NPC.new(obj)
             end
 
             DamageFeedback:SendFeedback(humanoid, damage, raycastResult.Position)
+        end
+    end))
+
+    self._damageTracker = ServerClassBinders.DamageTracker:BindAsync(self._humanoid)
+    self._maid:AddTask(self._damageTracker.Damaged:Connect(function(_, player)
+        if player then
+            local character = player.Character
+            if not character then
+                warn("[NPC] - No Character to pursue!")
+                return
+            end
+
+            self:_startPursuit(character)
         end
     end))
 

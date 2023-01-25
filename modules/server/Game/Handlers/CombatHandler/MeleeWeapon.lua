@@ -12,11 +12,14 @@ local BaseObject = require("BaseObject")
 local MeleeWeaponConstants = require("MeleeWeaponConstants")
 local HumanoidUtils = require("HumanoidUtils")
 local DamageFeedback = require("DamageFeedback")
+local ServerClassBinders = require("ServerClassBinders")
 
 local ANIMATIONS = ReplicatedStorage:WaitForChild("Animations"):WaitForChild("Weapon")
 local GENERIC_ANIMATIONS = ANIMATIONS:WaitForChild("Generic")
 local ONE_HANDED_ANIMATIONS = ANIMATIONS:WaitForChild("OneHanded")
 local TWO_HANDED_ANIMATIONS = ANIMATIONS:WaitForChild("TwoHanded")
+
+local DAMAGE = 10 -- Obviously will be replaced
 
 local MeleeWeapon = setmetatable({}, BaseObject)
 MeleeWeapon.__index = MeleeWeapon
@@ -94,7 +97,12 @@ function MeleeWeapon:_handleHit(instance, position)
         self._cachedHits[humanoid] = true
 
         if not humanoid:GetAttribute("Invincible") then
-            humanoid:TakeDamage(10)
+            local damageTracker = ServerClassBinders.DamageTracker:Get(humanoid)
+            if not damageTracker then
+                humanoid:TakeDamage(DAMAGE)
+            else
+                damageTracker:Damage(DAMAGE, self._player)
+            end
         end
 
         DamageFeedback:SendFeedback(humanoid, 10, position)

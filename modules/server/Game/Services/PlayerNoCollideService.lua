@@ -24,7 +24,7 @@ end
 -- Add the part to the "Player" collision group so they cant collide with eachother
 function PlayerNoCollideService:_handlePart(part)
     if part:IsA("BasePart") then
-        PhysicsService:SetPartCollisionGroup(part, "Player")
+        part.CollisionGroup = "Player"
     end
 end
 

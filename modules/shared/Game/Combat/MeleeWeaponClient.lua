@@ -13,6 +13,8 @@ local BaseObject = require("BaseObject")
 local Raycaster = require("Raycaster")
 local MeleeWeaponConstants = require("MeleeWeaponConstants")
 local Hitscan = require("Hitscan")
+local ClientClassBinders = require("ClientClassBinders")
+local HumanoidUtils = require("HumanoidUtils")
 
 local ANIMATIONS = ReplicatedStorage:WaitForChild("Animations"):WaitForChild("Weapon")
 local GENERIC_ANIMATIONS = ANIMATIONS:WaitForChild("Generic")
@@ -93,12 +95,33 @@ function MeleeWeaponClient:_handleEquipped()
     self:_playAnimation(self._equipAnimation)
 end
 
+function MeleeWeaponClient:_lockHumanoid(humanoid)
+    if self._humanoidLocker then
+        local lockedHumanoid = self._humanoidLocker:GetObject()
+        if lockedHumanoid == humanoid then
+            return
+        end
+
+        ClientClassBinders.HumanoidLocker:Unbind(lockedHumanoid)
+        self._humanoidLocker = nil
+    end
+
+    if humanoid then
+        self._humanoidLocker = ClientClassBinders.HumanoidLocker:BindAsync(humanoid)
+        self._maid.Unlocked = self._humanoidLocker.Unlocked:Connect(function()
+            self._humanoidLocker = nil
+            self._maid.Unlocked = nil
+        end)
+    end
+end
+
 function MeleeWeaponClient:_handleUnequipped()
     if self._playingAnimation then
         self._playingAnimation:Stop()
     end
 
     self:_stopHitscan()
+    self:_lockHumanoid()
 end
 
 function MeleeWeaponClient:_playAnimation(animationTrack)
@@ -137,7 +160,12 @@ function MeleeWeaponClient:_stopHitscan()
     self._hitscan:Stop()
 end
 
-function  MeleeWeaponClient:_handleHit(raycastResult)
+function MeleeWeaponClient:_handleHit(raycastResult)
+    local humanoid = HumanoidUtils.getHumanoid(raycastResult.Instance)
+    if humanoid then
+        self:_lockHumanoid(humanoid)       
+    end
+
     self._remoteEvent:FireServer("Hit", raycastResult.Instance, raycastResult.Position)
 end
 
