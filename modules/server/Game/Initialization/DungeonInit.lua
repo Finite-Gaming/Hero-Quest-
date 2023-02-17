@@ -10,6 +10,9 @@ function DungeonInit:Init()
     require("ServerTemplateProvider"):Init()
     require("NPCSpawner"):Init()
     require("TeamLocker"):Init()
+    require("DoorOpener"):Init()
+    require("RoomManager"):Init()
+    require("StartBubble"):Init()
 end
 
 return DungeonInit

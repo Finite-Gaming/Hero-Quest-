@@ -22,6 +22,10 @@ function HumanoidLocker.new(obj)
 
     self.Unlocked = Signal.new() -- :Fire()
 
+    if self._obj.Health <= 0 then
+        self:Destroy()
+        return
+    end
     self._localCharacter = Players.LocalPlayer.Character
     if not self._localCharacter then
         return
@@ -76,6 +80,7 @@ function HumanoidLocker.new(obj)
 
     self:_update()
     self._alignOrientation.Enabled = true
+    warn(debug.traceback())
     self._maid:AddTask(RunService.Heartbeat:Connect(function()
         self:_update()
     end))

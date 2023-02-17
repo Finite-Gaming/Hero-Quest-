@@ -125,13 +125,13 @@ end
 function MeleeWeapon:_handleEquipped()
     self._equipped = true
 
-    self._character.Animate.run.Animation.AnimationId = (self._animationFolder:FindFirstChild("Run") or GENERIC_ANIMATIONS.Run).AnimationId
+    --self._character.Animate.run.Animation.AnimationId = (self._animationFolder:FindFirstChild("Run") or GENERIC_ANIMATIONS.Run).AnimationId
 end
 
 function MeleeWeapon:_handleUnequipped()
     self._equipped = false
 
-    self._character.Animate.run.Animation.AnimationId = "http://www.roblox.com/asset/?id=4417979645"
+    --self._character.Animate.run.Animation.AnimationId = "http://www.roblox.com/asset/?id=4417979645"
 end
 
 return MeleeWeapon

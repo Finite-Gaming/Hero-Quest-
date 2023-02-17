@@ -16,6 +16,7 @@ local Hitscan = require("Hitscan")
 local HumanoidUtils = require("HumanoidUtils")
 local DamageFeedback = require("DamageFeedback")
 local ServerClassBinders = require("ServerClassBinders")
+local Signal = require("Signal")
 
 local DEBUG_ENABLED = false -- Setting this to true will show debug ray parts, and display the NPC's FOV
 
@@ -37,9 +38,17 @@ NPC.__index = NPC
 function NPC.new(obj)
     local self = setmetatable(BaseObject.new(obj), NPC)
 
-    self._npcZone = self._obj.Parent.Name
-    self._patrolPointsFolder = workspace.PatrolPoints[self._npcZone]
-    self._patrolPoints = self._patrolPointsFolder:GetChildren()
+    self._npcZone = self._obj.Parent.Parent.Name
+    self._patrolPointsFolder = workspace.Rooms[self._npcZone].PatrolPoints
+    self._patrolPoints = {}
+
+    for _, patrolPoint in ipairs(self._patrolPointsFolder:GetChildren()) do
+        if not patrolPoint:IsA("Attachment") then
+            continue
+        end
+
+        table.insert(self._patrolPoints, patrolPoint)
+    end
 
     self._humanoid = assert(self._obj:FindFirstChildOfClass("Humanoid"))
     self._humanoidRootPart = assert(self._obj:FindFirstChild("HumanoidRootPart"))
@@ -48,13 +57,29 @@ function NPC.new(obj)
     self._humanoid.WalkSpeed = ENEMY_SETTINGS.WalkSpeed
     self._pursueAngle = math.rad(ENEMY_SETTINGS.PursueAngle)
 
+    self.Died = self._maid:AddTask(Signal.new())
+
     self._healthBar = self._humanoidRootPart.HealthBar
     self._healthAccentBar = self._healthBar.CanvasGroup.AccentBar
 
+    local _, npcSize = self._obj:GetBoundingBox()
+    self._npcWidth = math.floor(npcSize.X)
+
     self._oldDebugParts = {}
 
+    self._alignOrientation = self._maid:AddTask(Instance.new("AlignOrientation"))
+
+    self._alignOrientation.Enabled = false
+    self._alignOrientation.Mode = Enum.OrientationAlignmentMode.OneAttachment
+    self._alignOrientation.PrimaryAxisOnly = Vector3.zAxis
+    self._alignOrientation.PrimaryAxisOnly = true
+    self._alignOrientation.Attachment0 = self._humanoidRootPart.RootRigAttachment
+    self._alignOrientation.RigidityEnabled = true
+
+    self._alignOrientation.Parent = self._humanoidRootPart
+
     self._raycaster = Raycaster.new()
-    self._raycaster:Ignore(workspace.NPC)
+    self._raycaster:Ignore({self._patrolPointsFolder.Parent.NPC, workspace.Terrain})
     self._raycaster.Visualize = DEBUG_ENABLED
 
     self._hitscan = Hitscan.new(self._obj.BasicMace, self._raycaster)
@@ -123,6 +148,11 @@ function NPC.new(obj)
         Vector3.new(-1, 0, 0) * self._nodeSpacing;
         Vector3.new(0, 0, 1) * self._nodeSpacing;
         Vector3.new(0, 0, -1) * self._nodeSpacing;
+
+        Vector3.new(1, 0, 1) * self._nodeSpacing;
+        Vector3.new(-1, 0, -1) * self._nodeSpacing;
+        Vector3.new(-1, 0, 1) * self._nodeSpacing;
+        Vector3.new(1, 0, -1) * self._nodeSpacing;
     }
 
     self._nodeHashmap = {}
@@ -141,7 +171,6 @@ function NPC.new(obj)
         nodePos = patrolPoint.Position
 
         local row = self._nodeHashmap[nodePos.X]
-
         if not row then
             row = {}
             self._nodeHashmap[nodePos.X] = row
@@ -171,13 +200,22 @@ function NPC.new(obj)
 
     self._maid:AddTask(self._humanoid.Died:Connect(function()
         task.wait(1)
+        self.Died:Fire()
         self._obj:Destroy()
     end))
 
-    self._waypoint = self._patrolPoints[1]
+    self._waypoint = self:_getClosestNode()
     self:_startPatrol()
 
     return self
+end
+
+function NPC:_lockHumanoid(humanoid)
+    if humanoid then
+        self._alignOrientation.Enabled = true
+    else
+        self._alignOrientation.Enabled = false
+    end
 end
 
 function NPC:_updateHealthBar()
@@ -224,7 +262,7 @@ function NPC:_getNeighbors(node)
             --DebugVisualizer:LookAtPart(node.WorldPosition, neighbor.WorldPosition, 0.95, 0.05)
             neighborCount += 1
 
-            if neighborCount == 4 then
+            if neighborCount == 8 then
                 break
             end
         end
@@ -352,9 +390,22 @@ function NPC:_startPatrol()
     end)
 end
 
+function NPC:_updateAlignment(rootPart)
+    local posA, posB = self._humanoidRootPart.Position, rootPart.Position
+    self._alignOrientation.CFrame = CFrame.lookAt(posA, posB)
+end
+
 function NPC:_startPursuit(character)
     self._animations.Walk:Stop()
     self._humanoid.WalkSpeed = ENEMY_SETTINGS.RunSpeed
+    local humanoid = character:FindFirstChild("Humanoid")
+    if not humanoid then
+        self:_stopPursuit()
+        return
+    end
+
+    self:_updateAlignment(humanoid.RootPart)
+    self._alignOrientation.Enabled = true
 
     self._maid.PursuitUpdate = RunService.Heartbeat:Connect(function()
         local humanoid = character:FindFirstChild("Humanoid")
@@ -381,6 +432,8 @@ function NPC:_startPursuit(character)
             return
         end
 
+        self:_updateAlignment(rootPart)
+
         if posDiff.Magnitude < 3 then
             if self._animations.Run.IsPlaying then
                 self._animations.Run:Stop()
@@ -405,6 +458,7 @@ end
 
 function NPC:_stopPursuit()
     self._humanoid.WalkSpeed = ENEMY_SETTINGS.WalkSpeed
+    self._alignOrientation.Enabled = false
     self._maid.PursuitUpdate = nil
     if self._animations.Run.IsPlaying then
         self._animations.Run:Stop()
@@ -447,6 +501,17 @@ function NPC:_randomPath()
     local oldWaypoint = self._waypoint
     self._waypoint = point
     self._waypoints = self:_pathfind(oldWaypoint, self._waypoint)
+    local tries = 0
+    while not self._waypoints do
+        if tries == 10 then
+            warn("[NPC] - Failed to pathfind.")
+            return
+        end
+        self._waypoint = point
+        self._waypoints = self:_pathfind(oldWaypoint, self._waypoint)
+
+        tries += 1
+    end
 
     if DEBUG_ENABLED then
         self:_buildDebugPath()

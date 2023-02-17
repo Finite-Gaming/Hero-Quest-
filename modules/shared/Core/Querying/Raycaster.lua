@@ -32,6 +32,8 @@ function Raycaster:Ignore(object)
     self:_updateParams()
 end
 
+Raycaster.Whitelist = Raycaster.Ignore
+
 function Raycaster:CastTo(origin, pointB)
     return self:Cast(origin, (origin - pointB))
 end

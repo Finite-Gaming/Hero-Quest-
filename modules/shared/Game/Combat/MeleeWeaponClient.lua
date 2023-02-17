@@ -37,7 +37,27 @@ function MeleeWeaponClient.new(obj)
         return
     end
 
-    self._character = self._player.Character or self._player.CharacterAdded:Wait()
+    -- All this code is required just to get the correct character because roblox has a skill issue
+    self._character = self._player.Character
+    if self._character then
+        if not self._character:IsDescendantOf(workspace) then
+            self._character = nil
+        end
+    end
+
+    if not self._character then
+        local currentThread = coroutine.running()
+
+        local old; old = self._player.CharacterAdded:Connect(function(character)
+            if character:IsDescendantOf(workspace) then
+                self._character = character
+                old:Disconnect()
+                coroutine.resume(currentThread)
+            end
+        end)
+
+        coroutine.yield()
+    end
 
     self._raycaster = Raycaster.new()
     self._raycaster:Ignore(self._character)
