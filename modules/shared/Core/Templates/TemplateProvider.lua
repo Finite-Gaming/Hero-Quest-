@@ -29,7 +29,7 @@ function TemplateProvider:_storeTemplates(folder)
 end
 
 function TemplateProvider:Get(templateName)
-    local template = assert(self._templates[templateName], "Invalid name"):Clone()
+    local template = assert(self._templates[templateName], ("Invalid name %q"):format(templateName)):Clone()
     template.Name = template.Name:gsub("Template", "")
     return template
 end

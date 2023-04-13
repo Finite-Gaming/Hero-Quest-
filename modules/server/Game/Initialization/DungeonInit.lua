@@ -12,7 +12,7 @@ function DungeonInit:Init()
     require("TeamLocker"):Init()
     require("DoorOpener"):Init()
     require("RoomManager"):Init()
-    require("StartBubble"):Init()
+    -- require("StartBubble"):Init()
 end
 
 return DungeonInit

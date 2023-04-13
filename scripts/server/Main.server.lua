@@ -14,6 +14,11 @@ require("ArmorHandler"):Init()
 require("CharacterService"):Init()
 require("SettingsService"):Init()
 require("ItemService"):Init()
+require("SoundPlayer"):Init()
+require("SoundPlayerService"):Init()
+require("EffectPlayerService"):Init()
+require("ApplyImpulse"):Init()
+require("VoicelineService"):Init()
 require("PlayerNoCollideService"):Init()
 
 if GameManager:IsLobby() then

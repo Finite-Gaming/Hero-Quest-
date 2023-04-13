@@ -13,13 +13,19 @@ return ClassBinderProvider.new(function(self)
     self:AddClassBinder(ClassBinder.new("MainButtonsInterface", require("MainButtonsInterface")))
     self:AddClassBinder(ClassBinder.new("ShopInterface", require("ShopInterface")))
 
+    -- Puzzle
+    self:AddClassBinder(ClassBinder.new("PuzzleBridge", require("PuzzleBridgeClient")))
+
     -- Misc
     self:AddClassBinder(ClassBinder.new("HumanoidLocker", require("HumanoidLocker")))
+    self:AddClassBinder(ClassBinder.new("ClientZone", require("ClientZone")))
+    self:AddClassBinder(ClassBinder.new("CameraTrigger", require("CameraTrigger")))
 
     -- Tools
     self:AddClassBinder(ClassBinder.new("MeleeWeapon", require("MeleeWeaponClient")))
 
     -- Traps
     self:AddClassBinder(ClassBinder.new("Spikes", require("SpikesClient")))
+    self:AddClassBinder(ClassBinder.new("Boulder", require("BoulderClient")))
     self:AddClassBinder(ClassBinder.new("Axe", require("AxeClient")))
 end)

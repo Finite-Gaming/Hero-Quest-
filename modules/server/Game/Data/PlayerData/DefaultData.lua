@@ -24,6 +24,10 @@ return {
 	-- Login date
 	LastLogin = 0; -- float
 
+    -- Dungeon completion
+    DungeonsCompleted = {}; -- {[dungeonTag] = int}
+    DungeonsPlayed = {}; -- {[dungeonTag] = int}
+
 	-- Successive login days
 	SuccessiveDailyLogins = 0; -- int
 

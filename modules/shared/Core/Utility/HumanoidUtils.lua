@@ -7,12 +7,13 @@ local HumanoidUtils = {}
 function HumanoidUtils.getHumanoid(descendant)
 	local character = descendant
 	while character do
-		local humanoid = character:FindFirstChildOfClass("Humanoid")
+		local humanoid = character:FindFirstChild("Humanoid")
 		if humanoid then
 			return humanoid
 		end
+
 		character = character:FindFirstAncestorOfClass("Model")
-	end
+    end
 
 	return nil
 end

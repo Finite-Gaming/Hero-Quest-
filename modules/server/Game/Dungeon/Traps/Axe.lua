@@ -23,6 +23,8 @@ function Axe.new(obj)
     self._hinge = self._obj.Hinge
     self._hinge.AngularSpeed = SPEED
 
+    self._sound = self._obj:FindFirstChild("Swing")
+
     self._remoteEvent = self._maid:AddTask(Instance.new("RemoteEvent"))
     self._remoteEvent.Name = AxeConstants.REMOTE_EVENT_NAME
     self._remoteEvent.Parent = self._obj
@@ -44,11 +46,18 @@ function Axe.new(obj)
 
         if math.abs(currentAngle) == TARGET_ANGLE then
             self._hinge.TargetAngle = -currentAngle
+            self:_playSound()
             self._remoteEvent:FireAllClients()
         end
     end))
 
     return self
+end
+
+function Axe:_playSound()
+    if self._sound then
+        self._sound:Play()
+    end
 end
 
 function Axe:_handleHit(player)

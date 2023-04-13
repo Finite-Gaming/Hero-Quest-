@@ -52,7 +52,7 @@ function DamageFeedbackClient:_handleClientEvent(humanoid, damage, position)
     local canvasGroup = indicator.CanvasGroup
     local label = canvasGroup.Label
 
-    label.Text = damage
+    label.Text = math.round(damage)
     label.TextColor3 = LEAST_DAMAGE:Lerp(MOST_DAMAGE, damage/humanoid.MaxHealth)
     indicator.Parent = dummyPart
     dummyPart.Parent = workspace.Terrain

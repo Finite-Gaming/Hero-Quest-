@@ -11,6 +11,8 @@ local ServerClassBinders = require("ServerClassBinders")
 local ModelUtils = require("ModelUtils")
 local Raycaster = require("Raycaster")
 local Signal = require("Signal")
+local Maid = require("Maid")
+local VoicelineService = require("VoicelineService")
 
 local NPCSpawner = {}
 
@@ -28,7 +30,10 @@ function NPCSpawner:Init()
     self._pointDict = {}
 
     for _, roomFolder in ipairs(workspace.Rooms:GetChildren()) do
-        local masterPart = roomFolder.PatrolPoints
+        local masterPart = roomFolder:FindFirstChild("PatrolPoints")
+        if not masterPart then
+            continue
+        end
         local npcZone = roomFolder.Name
         masterPart.Transparency = 1
         local points = {}
@@ -46,7 +51,10 @@ function NPCSpawner:Init()
 end
 
 function NPCSpawner:SetupZone(npcZoneName)
-    local masterPart = assert(workspace.Rooms:FindFirstChild(npcZoneName)).PatrolPoints
+    local masterPart = assert(workspace.Rooms:FindFirstChild(npcZoneName)):FindFirstChild("PatrolPoints")
+    if not masterPart then
+        return
+    end 
     local spawnTypes = masterPart:FindFirstChild("SpawnTypes")
     if not spawnTypes then
         warn(("[NPCSpawner] - No SpawnTypes configuration for %q zone!"):format(npcZoneName))
@@ -55,20 +63,67 @@ function NPCSpawner:SetupZone(npcZoneName)
 
     local totalEnemies = 0
     local deadEnemies = 0
+    local zoneMaid = Maid.new()
+    local enemies = {}
+
     for _, npcName in ipairs(spawnTypes:GetChildren()) do
         local spawnAmount = npcName:GetAttribute("Amount")
         totalEnemies += spawnAmount
         for _ = 1, spawnAmount do
+            local npc = self:SpawnEnemy(masterPart, npcName.Name)
+            local enemy = npc:GetObject()
+            local variant = enemy:GetAttribute("Variant") or "Orc"
+            local rootPart = enemy.HumanoidRootPart
+            local chaseChance = 2
 
-            self:SpawnEnemy(masterPart, npcName.Name).Died:Connect(function()
+            table.insert(enemies, npc)
+
+            zoneMaid:AddTask(enemy.Destroying:Connect(function()
                 deadEnemies += 1
+                table.remove(enemies, table.find(enemies, npc))
 
                 if deadEnemies == totalEnemies then
+                    zoneMaid:Destroy()
                     self.RoomCleared:Fire()
                 end
-            end)
+            end))
+            zoneMaid:AddTask(npc.KilledPlayer:Connect(function()
+                VoicelineService:PlayRandomGroupForZone(("%s_Kill"):format(variant), npcZoneName, rootPart)
+            end))
+            zoneMaid:AddTask(npc.StateChanged:Connect(function(state)
+                if state == "Chase" then
+                    if math.random(1, chaseChance) ~= chaseChance then
+                        return
+                    end
+
+                    VoicelineService:PlayRandomGroupForZone(("%s_Chase"):format(variant), npcZoneName, rootPart, true)
+                    chaseChance = 10
+                end
+            end))
+            zoneMaid:AddTask(npc.DamageTracker.Damaged:Connect(function()
+                if math.random(1, 10) == 1 then
+                    VoicelineService:PlayRandomGroupForZone(("%s_Damaged"):format(variant), npcZoneName, rootPart)
+                end
+            end))
+
+            task.wait() -- stop spam replication packets
         end
     end
+
+    zoneMaid:AddTask(task.spawn(function()
+        while true do
+            task.wait(math.random(7, 17))
+            local chosenNpc = enemies[math.random(1, #enemies)]
+            local enemy = chosenNpc:GetObject()
+
+            if chosenNpc:GetState() == "Idle" then
+                local sound = VoicelineService:PlayGroup(VoicelineService:GetRandomGroup(("%s_Ambient"):format(enemy:GetAttribute("Variant") or "Orc")), enemy.HumanoidRootPart)
+                if sound then
+                    sound.Ended:Wait()
+                end
+            end
+        end
+    end))
 end
 
 function NPCSpawner:_getRandomPoint(masterPart)
@@ -99,7 +154,7 @@ function NPCSpawner:SpawnEnemy(masterPart, npcName)
     end
 
     local _, npcSize = npc:GetBoundingBox()
-    npc:PivotTo(CFrame.new(result.Position + (Vector3.yAxis * (npcSize.Y/2))))
+    npc:PivotTo(CFrame.new(result.Position + (Vector3.yAxis * npc.Humanoid.HipHeight)))
 
     local npcFolder = masterPart.Parent:FindFirstChild("NPC")
     if not npcFolder then

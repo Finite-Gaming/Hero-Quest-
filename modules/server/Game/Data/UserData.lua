@@ -7,6 +7,7 @@ local HttpService = game:GetService("HttpService")
 -- local skins = ServerScriptService:WaitForChild("Skins")
 
 local ItemConstants = require("ItemConstants")
+local Signal = require("Signal")
 local DefaultData = require("DefaultData")
 
 -- ProfileService (data storage)
@@ -14,7 +15,7 @@ local ProfileService = require("ProfileService")
 local PROFILE_KEY_FORMAT = "USER_%d"
 
 local ProfileStore = ProfileService.GetProfileStore(
-	"PlayerData",
+	"UserData_TEST_1",
 	DefaultData
 )
 
@@ -25,7 +26,7 @@ local UserData = {
 local profileReady = Instance.new("BindableEvent")
 
 local loggedIn = Instance.new("BindableEvent")
-UserData.LoggedIn = loggedIn.Event
+UserData.LoggedIn = Signal.new()
 
 -- Checks if a user profile exists and returns it without creating any new one
 function UserData:FindLoadedProfile(userId: number)
@@ -111,9 +112,9 @@ function UserData:GiveSpecialReward(userId, rewardName)
 		end
 
 		print(string.format("Gave user %d special reward %s.", userId, rewardName))
-		print("Has weapons:", data.Weapons)
-		print("Has armors:", data.Armors)
-		print("Has pets:", data.Pets)
+		-- print("Has weapons:", data.Weapons)
+		-- print("Has armors:", data.Armors)
+		-- print("Has pets:", data.Pets)
 		rewards[rewardName] = true
 	else
 		-- Player already has the reward
@@ -167,7 +168,6 @@ function UserData:GetProfile(userId: number)
 	local profile = self:FindLoadedProfile(userId)
 	if not profile then
 		profile = ProfileStore:LoadProfileAsync(key)
-		profile = self.UserProfiles[key] or profile
 		self.UserProfiles[key] = profile
 
 		if profile then
@@ -178,7 +178,7 @@ function UserData:GetProfile(userId: number)
 			profile:Reconcile()
 			-- When the profile released, remove their data from the local server
 			profile:ListenToRelease(function()
-				print("Released player data for user", userId)
+				-- print("Released player data for user", userId)
 				self.UserProfiles[key] = nil
 
 				-- If the player by this user ID is in the server, disconnect them
@@ -312,7 +312,6 @@ local function handlePlayer(player: Player)
 		return error(string.format("Failed to load %s's (id %d) profile.", player.DisplayName, userId))
 	end
 
-	warn(profile)
 	-- Award starter gear
 	UserData:GiveSpecialReward(userId, "Starter")
 	loggedIn:Fire(player)
@@ -336,7 +335,7 @@ Players.PlayerRemoving:Connect(function(player)
 end)
 
 -- When a user logs in
-UserData.LoggedIn:Connect(function(player: Player)
+loggedIn.Event:Connect(function(player: Player)
 	local profile = UserData:FindLoadedProfile(player.UserId)
 	assert(profile, "Profile not loaded.")
 	local data = profile.Data
@@ -355,6 +354,7 @@ UserData.LoggedIn:Connect(function(player: Player)
 
 	-- Update the user's last login date
 	data.LastLogin = os.time()
+    UserData.LoggedIn:Fire(player, profile)
 end)
 
 return UserData

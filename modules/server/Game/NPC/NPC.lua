@@ -17,19 +17,62 @@ local HumanoidUtils = require("HumanoidUtils")
 local DamageFeedback = require("DamageFeedback")
 local ServerClassBinders = require("ServerClassBinders")
 local Signal = require("Signal")
+local Maid = require("Maid")
+local GenericAttack = require("GenericAttack")
+local StompAttack = require("StompAttack")
+local ChargeAttack = require("ChargeAttack")
+local VoicelineService = require("VoicelineService")
 
 local DEBUG_ENABLED = false -- Setting this to true will show debug ray parts, and display the NPC's FOV
 
 local ENEMY_SETTINGS = {
-    WalkSpeed = 10; -- Speed the NPC will travel while patroling
-    RunSpeed = 14; -- Speed the NPC will travel when pursuing a player
-    PursueAngle = 105; -- The FOV of the NPC's detection range
-    PursueRange = 12; -- The max distance a player can be from the NPC to be detected
-    AttackRefresh = 0.3; -- The amount of time waited after an attack
-    PathingCooldown = 3; -- The amount of time waited between re-pathing when patroling
+    Orc = {
+        WalkSpeed = 10; -- Speed the NPC will travel while patroling
+        RunSpeed = 14; -- Speed the NPC will travel when pursuing a player
+        PursueAngle = 105; -- The FOV of the NPC's detection range
+        PursueRange = 12; -- The max distance a player can be from the NPC to be detected
+        AttackRefresh = 0.3; -- The amount of time waited after an attack
+        PathingCooldown = 3; -- The amount of time waited between re-pathing when patroling
 
-    MinDamage = 10;
-    MaxDamage = 20;
+        MinDamage = 10;
+        MaxDamage = 20;
+
+        Attacks = {
+            {
+                Class = GenericAttack;
+                Range = 5; -- The distance the npc will attack at
+                WeaponName = "Mace";
+            };
+        };
+    };
+    Warden = {
+        WalkSpeed = 12;
+        RunSpeed = 17;
+        PursueAngle = 160;
+        PursueRange = 64;
+        AttackRefresh = 0.3;
+        PathingCooldown = 5;
+
+        MinDamage = 18;
+        MaxDamage = 42;
+
+        Attacks = {
+            {
+                Class = GenericAttack;
+                Range = 9;
+                WeaponName = "Axe";
+            };
+            {
+                Class = StompAttack;
+                Range = 30;
+            };
+            {
+                Class = ChargeAttack;
+                Range = 64;
+                WeaponName = "Hitbox";
+            };
+        };
+    };
 }
 
 local NPC = setmetatable({}, BaseObject)
@@ -54,24 +97,40 @@ function NPC.new(obj)
     self._humanoidRootPart = assert(self._obj:FindFirstChild("HumanoidRootPart"))
 
     -- Setup
-    self._humanoid.WalkSpeed = ENEMY_SETTINGS.WalkSpeed
-    self._pursueAngle = math.rad(ENEMY_SETTINGS.PursueAngle)
+    self._variant = self._obj:GetAttribute("Variant") or "Orc"
+    self._settings = ENEMY_SETTINGS[self._variant]
+
+    self._humanoid.WalkSpeed = self._settings.WalkSpeed
+    self._pursueAngle = math.rad(self._settings.PursueAngle)
 
     self.Died = self._maid:AddTask(Signal.new())
+    self.KilledPlayer = self._maid:AddTask(Signal.new())
+    self.StateChanged = self._maid:AddTask(Signal.new())
 
-    self._healthBar = self._humanoidRootPart.HealthBar
-    self._healthAccentBar = self._healthBar.CanvasGroup.AccentBar
+    self._maid:AddTask(self.StateChanged:Connect(function(state)
+        self._state = state
+    end))
+
+    self._healthBar = self._humanoidRootPart:FindFirstChild("HealthBar")
+    if self._healthBar then
+        self._healthAccentBar = self._healthBar.CanvasGroup.AccentBar
+    end
 
     local _, npcSize = self._obj:GetBoundingBox()
     self._npcWidth = math.floor(npcSize.X)
 
-    self._oldDebugParts = {}
+    self._rootAttachment = self._humanoidRootPart:FindFirstChild("RootRigAttachment")
+    if not self._rootAttachment then
+        self._rootAttachment = Instance.new("Attachment")
+        self._rootAttachment.Name = "RootRigAttachment"
+        self._rootAttachment.Parent = self._humanoidRootPart
+    end
 
     self._alignOrientation = self._maid:AddTask(Instance.new("AlignOrientation"))
 
     self._alignOrientation.Enabled = false
     self._alignOrientation.Mode = Enum.OrientationAlignmentMode.OneAttachment
-    self._alignOrientation.PrimaryAxisOnly = Vector3.zAxis
+    self._alignOrientation.PrimaryAxis = Vector3.zAxis
     self._alignOrientation.PrimaryAxisOnly = true
     self._alignOrientation.Attachment0 = self._humanoidRootPart.RootRigAttachment
     self._alignOrientation.RigidityEnabled = true
@@ -82,27 +141,34 @@ function NPC.new(obj)
     self._raycaster:Ignore({self._patrolPointsFolder.Parent.NPC, workspace.Terrain})
     self._raycaster.Visualize = DEBUG_ENABLED
 
-    self._hitscan = Hitscan.new(self._obj.BasicMace, self._raycaster)
+    self._attacks = {}
     self._cachedHits = {}
-    self._maid:AddTask(self._hitscan.Hit:Connect(function(raycastResult)
-        local humanoid = HumanoidUtils.getHumanoid(raycastResult.Instance)
-        if humanoid then
-            if self._cachedHits[humanoid] then
-                return
-            end
-            self._cachedHits[humanoid] = true
-
-            local damage = math.random(ENEMY_SETTINGS.MinDamage, ENEMY_SETTINGS.MaxDamage)
-            if not humanoid:GetAttribute("Invincible") then
-                humanoid:TakeDamage(damage)
-            end
-
-            DamageFeedback:SendFeedback(humanoid, damage, raycastResult.Position)
+    for _, attackData in ipairs(self._settings.Attacks) do
+        local attackClass = self._maid:AddTask(attackData.Class.new(self))
+        if attackData.WeaponName then
+            local hitscan = Hitscan.new(self._obj[attackData.WeaponName], self._raycaster)
+            self._maid:AddTask(hitscan.Hit:Connect(function(raycastResult)
+                if attackClass.HandleHit then
+                    attackClass:HandleHit(raycastResult)
+                else
+                    self:_handleHit(raycastResult)
+                end
+            end))
+            self._maid:AddTask(attackClass.StartHitscan:Connect(function()
+                hitscan:Start()
+            end))
+            self._maid:AddTask(attackClass.EndHitscan:Connect(function()
+                hitscan:Stop()
+                table.clear(self._cachedHits)
+            end))
         end
-    end))
 
-    self._damageTracker = ServerClassBinders.DamageTracker:BindAsync(self._humanoid)
-    self._maid:AddTask(self._damageTracker.Damaged:Connect(function(_, player)
+        table.insert(self._attacks, {Class = attackClass, Data = attackData})
+    end
+    self:_pickRandomAttack()
+
+    self.DamageTracker = ServerClassBinders.DamageTracker:BindAsync(self._humanoid)
+    self._maid:AddTask(self.DamageTracker.Damaged:Connect(function(_, player)
         if player then
             local character = player.Character
             if not character then
@@ -114,21 +180,23 @@ function NPC.new(obj)
         end
     end))
 
-    self:_updateHealthBar()
-    self._maid:AddTask(self._humanoid:GetPropertyChangedSignal("Health"):Connect(function()
+    if self._healthBar then
         self:_updateHealthBar()
-    end))
-    self._maid:AddTask(self._humanoid:GetPropertyChangedSignal("MaxHealth"):Connect(function()
-        self:_updateHealthBar()
-    end))
+        self._maid:AddTask(self._humanoid:GetPropertyChangedSignal("Health"):Connect(function()
+            self:_updateHealthBar()
+        end))
+        self._maid:AddTask(self._humanoid:GetPropertyChangedSignal("MaxHealth"):Connect(function()
+            self:_updateHealthBar()
+        end))
+    end
 
     if DEBUG_ENABLED then
         local rootCFrame = self._humanoidRootPart.CFrame
-        local posA = (rootCFrame * CFrame.Angles(0, math.pi + self._pursueAngle/2, 0) * CFrame.new(0, 0, ENEMY_SETTINGS.PursueRange)).Position
-        local posB = (rootCFrame * CFrame.Angles(0, math.pi + -self._pursueAngle/2, 0) * CFrame.new(0, 0, ENEMY_SETTINGS.PursueRange)).Position
+        local posA = (rootCFrame * CFrame.Angles(0, math.pi + self._pursueAngle/2, 0) * CFrame.new(0, 0, self._settings.PursueRange)).Position
+        local posB = (rootCFrame * CFrame.Angles(0, math.pi + -self._pursueAngle/2, 0) * CFrame.new(0, 0, self._settings.PursueRange)).Position
 
-        local partA = DebugVisualizer:LookAtPart(rootCFrame.Position, posA)
-        local partB = DebugVisualizer:LookAtPart(rootCFrame.Position, posB)
+        local partA = self._maid:AddTask(DebugVisualizer:LookAtPart(rootCFrame.Position, posA))
+        local partB = self._maid:AddTask(DebugVisualizer:LookAtPart(rootCFrame.Position, posB))
 
         local relativeA, relativeB = rootCFrame:ToObjectSpace(partA.CFrame), rootCFrame:ToObjectSpace(partB.CFrame)
 
@@ -185,13 +253,8 @@ function NPC.new(obj)
 
     -- Animation
     self._animations = {}
-    self._attackAnimations = {}
     for _, animation in ipairs(self._obj.Animations:GetChildren()) do
-        if animation:IsA("Folder") and animation.Name == "Attacks" then
-            for _, attackAnimation in ipairs(animation:GetChildren()) do
-                table.insert(self._attackAnimations, AnimationTrack.new(attackAnimation, self._humanoid))
-            end
-
+        if not animation:IsA("Animation") then
             continue
         end
 
@@ -199,15 +262,51 @@ function NPC.new(obj)
     end
 
     self._maid:AddTask(self._humanoid.Died:Connect(function()
-        task.wait(1)
+        -- TODO: Play death effect
         self.Died:Fire()
         self._obj:Destroy()
     end))
+
+    -- if self._animations.Idle then
+    --     self._animations.Idle:Play()
+    -- end
 
     self._waypoint = self:_getClosestNode()
     self:_startPatrol()
 
     return self
+end
+
+function NPC:GetState()
+    return self._state or "Idle"
+end
+
+function NPC:_pickRandomAttack()
+    self._nextAttack = self._attacks[math.random(1, #self._attacks)]
+end
+
+function NPC:_handleHit(raycastResult)
+    local humanoid = HumanoidUtils.getHumanoid(raycastResult.Instance)
+    if humanoid then
+        if self._cachedHits[humanoid] then
+            return
+        end
+        self._cachedHits[humanoid] = true
+
+        -- TODO: Swap to PlayerDamageService.lua
+        local damage = math.random(self._settings.MinDamage, self._settings.MaxDamage)
+        if not humanoid:GetAttribute("Invincible") then
+            humanoid:TakeDamage(damage)
+        end
+
+        local character = humanoid.Parent
+        local player = Players[character.Name]
+        if player and humanoid.Health <= 0 then
+            self.KilledPlayer:Fire(player)
+        end
+
+        DamageFeedback:SendFeedback(humanoid, damage, raycastResult.Position)
+    end
 end
 
 function NPC:_lockHumanoid(humanoid)
@@ -222,27 +321,25 @@ function NPC:_updateHealthBar()
     self._healthAccentBar.Size = UDim2.fromScale(self._humanoid.Health/self._humanoid.MaxHealth, 1)
 end
 
-function NPC:_attack()
-    local attackAnim = self._attackAnimations[math.random(1, #self._attackAnimations)]
-    attackAnim:Play()
-    self._hitscan:Start()
-    attackAnim.Stopped:Wait()
-    self._hitscan:Stop()
-    table.clear(self._cachedHits)
+function NPC:_attack(character)
+    local attack = self._nextAttack.Class
+    self:_pickRandomAttack()
+    attack:Play(character).Stopped:Wait()
+    return attack.GetHitDebounce and attack:GetHitDebounce() or 0
+
 end
 
 function NPC:_buildDebugPath()
-    for _, oldPart in ipairs(self._oldDebugParts) do
-        oldPart:Destroy()
-    end
-    table.clear(self._oldDebugParts)
+    local partMaid = Maid.new()
+    self._maid.DebugPartMaid = nil
 
     local lastPoint = nil
     for _, waypoint in ipairs(self._waypoints) do
         local point = waypoint.WorldPosition
-        table.insert(self._oldDebugParts, DebugVisualizer:LookAtPart(lastPoint or point, point, 0.5, 0.2))
+        partMaid:AddTask(DebugVisualizer:LookAtPart(lastPoint or point, point, 0.5, 0.2))
         lastPoint = point
     end
+    self._maid.DebugPartMaid = partMaid
 end
 
 function NPC:_getNeighbors(node)
@@ -344,7 +441,7 @@ function NPC:_startPatrol()
     self._maid.PatrolThread = task.spawn(function()
         while true do
             self:_randomPath()
-            task.wait(ENEMY_SETTINGS.PathingCooldown)
+            task.wait(self._settings.PathingCooldown)
         end
     end)
 
@@ -372,7 +469,7 @@ function NPC:_startPatrol()
 
             local rootPos = rootPart.Position
             local difference = rootPos - self._humanoidRootPart.Position
-            if difference.Magnitude > ENEMY_SETTINGS.PursueRange then
+            if difference.Magnitude > self._settings.PursueRange then
                 continue
             end
 
@@ -383,6 +480,7 @@ function NPC:_startPatrol()
             local rayResult = self._raycaster:Cast(self._humanoidRootPart.Position, (rootPos - self._humanoidRootPart.Position))
             if rayResult and rayResult.Instance:IsDescendantOf(character) then
                 self:_stopPatrol()
+                self.StateChanged:Fire("Chase")
                 self:_startPursuit(character)
                 return
             end
@@ -397,7 +495,8 @@ end
 
 function NPC:_startPursuit(character)
     self._animations.Walk:Stop()
-    self._humanoid.WalkSpeed = ENEMY_SETTINGS.RunSpeed
+    self:StopWalkEffects()
+    self._humanoid.WalkSpeed = self._settings.RunSpeed
     local humanoid = character:FindFirstChild("Humanoid")
     if not humanoid then
         self:_stopPursuit()
@@ -425,8 +524,9 @@ function NPC:_startPursuit(character)
         end
 
         local rootPos = rootPart.Position
-        local posDiff = (rootPos - self._humanoidRootPart.Position)
-        local rayResult = self._raycaster:Cast(self._humanoidRootPart.Position, posDiff)
+        local localRootPos = self._humanoidRootPart.Position
+        local posDiff = rootPos - localRootPos
+        local rayResult = self._raycaster:Cast(localRootPos, posDiff)
         if not rayResult or not rayResult.Instance:IsDescendantOf(character) then
             self:_stopPursuit()
             return
@@ -434,21 +534,24 @@ function NPC:_startPursuit(character)
 
         self:_updateAlignment(rootPart)
 
-        if posDiff.Magnitude < 3 then
+        local hDistance = math.sqrt((rootPos.X - localRootPos.X)^2 + (rootPos.Z - localRootPos.Z)^2)
+        if hDistance < (self._nextAttack.Data.Range or 4) then
             if self._animations.Run.IsPlaying then
+                self:StopWalkEffects()
                 self._animations.Run:Stop()
             end
 
             self._humanoid:MoveTo(self._humanoidRootPart.Position)
             self._maid.PursuitUpdate = nil
-            self:_attack()
 
-            task.wait(ENEMY_SETTINGS.AttackRefresh)
-            self:_startPursuit(character)
+            self._maid:AddTask(task.delay(self:_attack(character) + self._settings.AttackRefresh, function()
+                self:_startPursuit(character)
+            end))
             return
         end
 
         if not self._animations.Run.IsPlaying then
+            self:StartWalkEffects()
             self._animations.Run:Play()
         end
 
@@ -457,10 +560,13 @@ function NPC:_startPursuit(character)
 end
 
 function NPC:_stopPursuit()
-    self._humanoid.WalkSpeed = ENEMY_SETTINGS.WalkSpeed
+    self.StateChanged:Fire("Idle")
+
+    self._humanoid.WalkSpeed = self._settings.WalkSpeed
     self._alignOrientation.Enabled = false
     self._maid.PursuitUpdate = nil
     if self._animations.Run.IsPlaying then
+        self:StopWalkEffects()
         self._animations.Run:Stop()
     end
 
@@ -518,6 +624,7 @@ function NPC:_randomPath()
     end
 
     self._animations.Walk:Play()
+    self:StartWalkEffects()
 
     for _, nextPoint in ipairs(self._waypoints) do
         local humanoidPosition, pointPosition = self._humanoidRootPart.Position, nextPoint.WorldPosition
@@ -530,6 +637,27 @@ function NPC:_randomPath()
     end
 
     self._animations.Walk:Stop()
+    self:StopWalkEffects()
+end
+
+function NPC:StartWalkEffects()
+    if self._footstepsPlaying then
+        return
+    end
+    self._footstepsPlaying = true
+
+    local FOOTSTEP_CATEGORY = ("%s_Footstep"):format(self._variant)
+    self._maid.WalkUpdate = task.spawn(function()
+        while true do
+            task.wait(7/self._humanoid.WalkSpeed)
+            VoicelineService:PlayRandomGroup(FOOTSTEP_CATEGORY, self._humanoidRootPart)
+        end
+    end)
+end
+
+function NPC:StopWalkEffects()
+    self._footstepsPlaying = false
+    self._maid.WalkUpdate = nil
 end
 
 function NPC:_getRandomPoint()

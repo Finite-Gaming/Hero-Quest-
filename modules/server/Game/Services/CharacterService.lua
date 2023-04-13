@@ -10,13 +10,28 @@ local CollectionService = game:GetService("CollectionService")
 local Network = require("Network")
 local CharacterServiceConstants = require("CharacterServiceConstants")
 local GameManager = require("GameManager")
+local UserData = require("UserData")
+local ProgressionHelper = require("ProgressionHelper")
 
 local CharacterService = {}
 
 -- Initialize remote function
 function CharacterService:Init()
+    local dungeonTag = workspace:GetAttribute("DungeonTag")
+
     self._loadedPlayers = {}
     self._playerLoaded = Instance.new("BindableEvent")
+
+    UserData.LoggedIn:Connect(function(player, profile)
+        ProgressionHelper:HandlePlayerLoggedIn(player, profile)
+
+        local playedDict = profile.Data.DungeonsPlayed
+        if playedDict[dungeonTag] then
+            playedDict[dungeonTag] += 1
+        else
+            playedDict[dungeonTag] = 1
+        end
+    end)
 
     Players.PlayerAdded:Connect(function(player)
         self:_handlePlayerAdded(player)

@@ -80,7 +80,6 @@ function HumanoidLocker.new(obj)
 
     self:_update()
     self._alignOrientation.Enabled = true
-    warn(debug.traceback())
     self._maid:AddTask(RunService.Heartbeat:Connect(function()
         self:_update()
     end))

@@ -19,7 +19,7 @@ local GENERIC_ANIMATIONS = ANIMATIONS:WaitForChild("Generic")
 local ONE_HANDED_ANIMATIONS = ANIMATIONS:WaitForChild("OneHanded")
 local TWO_HANDED_ANIMATIONS = ANIMATIONS:WaitForChild("TwoHanded")
 
-local DAMAGE = 10 -- Obviously will be replaced
+local DAMAGE = 1000 -- Obviously will be replaced
 
 local MeleeWeapon = setmetatable({}, BaseObject)
 MeleeWeapon.__index = MeleeWeapon

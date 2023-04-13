@@ -14,7 +14,13 @@ local DoorOpenerClient = {}
 
 function DoorOpenerClient:Init()
     Network:GetRemoteEvent(DoorOpenerConstants.REMOTE_EVENT_NAME).OnClientEvent:Connect(function(door)
-        self:_openDoor(door)
+        if door:IsA("Folder") then
+            for _, doorChild in ipairs(door:GetChildren()) do
+                self:_openDoor(doorChild)
+            end
+        else
+            self:_openDoor(door)
+        end
     end)
 end
 
@@ -31,13 +37,17 @@ function DoorOpenerClient:_openDoor(door)
 
     local moveTween = doorMaid:AddTask(TweenService:Create(
         cframeValue,
-        TweenInfo.new(1, Enum.EasingStyle.Quart, Enum.EasingDirection.Out),
-        {Value = startCFrame * CFrame.new(0, 10, 0)}
+        TweenInfo.new(1.4, Enum.EasingStyle.Linear, Enum.EasingDirection.Out),
+        {Value = startCFrame + Vector3.new(0, -(door:GetAttribute("OpenDepth") or door.PrimaryPart.Size.Y), 0)}
     ))
     doorMaid:AddTask(moveTween.Completed:Connect(function()
         doorMaid:Destroy()
     end))
 
+    local toggleSound = door.PrimaryPart:FindFirstChild("Toggle")
+    if toggleSound then
+        toggleSound:Play()
+    end
     moveTween:Play()
 end
 
