@@ -15,6 +15,7 @@ local MeleeWeaponConstants = require("MeleeWeaponConstants")
 local Hitscan = require("Hitscan")
 local ClientClassBinders = require("ClientClassBinders")
 local HumanoidUtils = require("HumanoidUtils")
+local AttackBase = require("AttackBase")
 
 local ANIMATIONS = ReplicatedStorage:WaitForChild("Animations"):WaitForChild("Weapon")
 local GENERIC_ANIMATIONS = ANIMATIONS:WaitForChild("Generic")
@@ -74,11 +75,6 @@ function MeleeWeaponClient.new(obj)
 
     self._remoteEvent = self._obj:WaitForChild(MeleeWeaponConstants.REMOTE_EVENT_NAME)
 
-    self._hitscan = Hitscan.new(self._handle, self._raycaster)
-    self._hitscan.Hit:Connect(function(raycastResult)
-        self:_handleHit(raycastResult)
-    end)
-
     if self._animationType == "OneHanded" then
         self._animationFolder = ONE_HANDED_ANIMATIONS
     elseif self._animationType == "TwoHanded" then
@@ -88,13 +84,11 @@ function MeleeWeaponClient.new(obj)
     self._randomObject = Random.new()
 
     self._equipAnimation = AnimationTrack.new(GENERIC_ANIMATIONS:WaitForChild("Equip"), self._humanoid)
-    self._attackAnimations = {}
 
-    for _, attackAnimation in ipairs(self._animationFolder:WaitForChild("Attacks"):GetChildren()) do
-        local attackTrack = AnimationTrack.new(attackAnimation, self._humanoid)
-        attackTrack.Priority = Enum.AnimationPriority.Action2
-        table.insert(self._attackAnimations, attackTrack)
-    end
+    self._attacks = {}
+    self._cachedHits = {}
+
+    self:_addAttack(AttackBase, self._animationFolder:WaitForChild("Attacks"))
 
     self._maid:AddTask(self._obj.Equipped:Connect(function()
         self:_handleEquipped()
@@ -109,6 +103,26 @@ function MeleeWeaponClient.new(obj)
     end))
 
     return self
+end
+
+function MeleeWeaponClient:_addAttack(class, animationFolder)
+    local attackClass = self._maid:AddTask(class.new(self, animationFolder))
+    local hitscan = Hitscan.new(self._handle, self._raycaster)
+    self._maid:AddTask(hitscan.Hit:Connect(function(raycastResult)
+        if attackClass.HandleHit then
+            attackClass:HandleHit(raycastResult)
+        else
+            self:_handleHit(raycastResult)
+        end
+    end))
+    self._maid:AddTask(attackClass.StartHitscan:Connect(function()
+        hitscan:Start()
+    end))
+    self._maid:AddTask(attackClass.EndHitscan:Connect(function()
+        hitscan:Stop()
+        table.clear(self._cachedHits)
+    end))
+    table.insert(self._attacks, attackClass)
 end
 
 function MeleeWeaponClient:_handleEquipped()
@@ -140,7 +154,6 @@ function MeleeWeaponClient:_handleUnequipped()
         self._playingAnimation:Stop()
     end
 
-    self:_stopHitscan()
     self:_lockHumanoid()
 end
 
@@ -162,30 +175,24 @@ function MeleeWeaponClient:_tryAttack()
     end
     self._lastHit = attackTick
 
-    local attackAnimation = self._attackAnimations[self._randomObject:NextInteger(1, #self._attackAnimations)]
-
     self._remoteEvent:FireServer("Attack")
     self._trail.Enabled = true
-    self:_startHitscan()
-    self:_playAnimation(attackAnimation)
-    self:_stopHitscan()
+    self._attacks[1]:Play()
     self._trail.Enabled = false
-end
-
-function MeleeWeaponClient:_startHitscan()
-    self._hitscan:Start()
-end
-
-function MeleeWeaponClient:_stopHitscan()
-    self._hitscan:Stop()
 end
 
 function MeleeWeaponClient:_handleHit(raycastResult)
     local humanoid = HumanoidUtils.getHumanoid(raycastResult.Instance)
-    if humanoid then
-        self:_lockHumanoid(humanoid)       
+    if not humanoid then
+        return
     end
 
+    if self._cachedHits[humanoid] then
+        return
+    end
+    self._cachedHits[humanoid] = true
+
+    self:_lockHumanoid(humanoid)
     self._remoteEvent:FireServer("Hit", raycastResult.Instance, raycastResult.Position)
 end
 

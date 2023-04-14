@@ -7,15 +7,15 @@ local require = require(game:GetService("ReplicatedStorage"):WaitForChild("Compl
 local BaseObject = require("BaseObject")
 local Signal = require("Signal")
 local AnimationTrack = require("AnimationTrack")
-local SoundPlayerService = require("SoundPlayerService")
+local SoundPlayer = require("SoundPlayer")
 
 local AttackBase = setmetatable({}, BaseObject)
 AttackBase.__index = AttackBase
 
-function AttackBase.new(npc, animationFolder)
-    local self = setmetatable(BaseObject.new(npc), AttackBase)
+function AttackBase.new(obj, animationFolder)
+    local self = setmetatable(BaseObject.new(obj), AttackBase)
 
-    self._humanoid = npc._obj.Humanoid
+    self._humanoid = obj._humanoid
 
     self._animationFolder = animationFolder
     self._animationTracks = {}
@@ -23,6 +23,8 @@ function AttackBase.new(npc, animationFolder)
 
     for _, attackAnimation in ipairs(self._animationFolder:GetChildren()) do
         local attackTrack = AnimationTrack.new(attackAnimation, self._humanoid)
+        attackTrack.Priority = Enum.AnimationPriority.Action3
+
         self._maid:AddTask(attackTrack:GetMarkerReachedSignal("AttackUpdate"):Connect(function(attackParam)
             if attackParam == "Start" then
                 self.StartHitscan:Fire()
@@ -34,7 +36,7 @@ function AttackBase.new(npc, animationFolder)
         end))
 
         self._maid:AddTask(attackTrack:GetMarkerReachedSignal("PlaySound"):Connect(function(soundName)
-            SoundPlayerService:PlaySoundAtPart(self._humanoid.RootPart, soundName)
+            SoundPlayer:PlaySoundAtPart(self._humanoid.RootPart, soundName)
             self.SoundPlayed:Fire(soundName)
         end))
 

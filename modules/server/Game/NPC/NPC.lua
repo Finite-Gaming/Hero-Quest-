@@ -326,7 +326,6 @@ function NPC:_attack(character)
     self:_pickRandomAttack()
     attack:Play(character).Stopped:Wait()
     return attack.GetHitDebounce and attack:GetHitDebounce() or 0
-
 end
 
 function NPC:_buildDebugPath()
