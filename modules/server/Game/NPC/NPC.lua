@@ -22,6 +22,8 @@ local GenericAttack = require("GenericAttack")
 local StompAttack = require("StompAttack")
 local ChargeAttack = require("ChargeAttack")
 local VoicelineService = require("VoicelineService")
+local UserData = require("UserData")
+local EffectPlayerService = require("EffectPlayerService")
 
 local DEBUG_ENABLED = false -- Setting this to true will show debug ray parts, and display the NPC's FOV
 
@@ -72,6 +74,8 @@ local ENEMY_SETTINGS = {
                 WeaponName = "Hitbox";
             };
         };
+
+        SpecialReward = "WardenBoss";
     };
 }
 
@@ -95,6 +99,8 @@ function NPC.new(obj)
 
     self._humanoid = assert(self._obj:FindFirstChildOfClass("Humanoid"))
     self._humanoidRootPart = assert(self._obj:FindFirstChild("HumanoidRootPart"))
+
+    self._totalHits = 0
 
     -- Setup
     self._variant = self._obj:GetAttribute("Variant") or "Orc"
@@ -169,14 +175,35 @@ function NPC.new(obj)
 
     self.DamageTracker = ServerClassBinders.DamageTracker:BindAsync(self._humanoid)
     self._maid:AddTask(self.DamageTracker.Damaged:Connect(function(_, player)
-        if player then
-            local character = player.Character
-            if not character then
-                warn("[NPC] - No Character to pursue!")
-                return
-            end
+        self._totalHits += 1
+        if self._totalHits % 3 == 0 then
+            local hitReaction = self._animations.GotHit
+            if hitReaction then
+                if self._playingAttack then
+                    self._playingAttack:Cancel()
+                end
+                self._hitReacting = true
+                hitReaction.TimePosition = math.random(1, 10)/10
+                hitReaction:Play(0.2)
+                hitReaction:AdjustSpeed(0.2)
 
-            self:_startPursuit(character)
+                task.delay(0.5, function()
+                    self._hitReacting = false
+                    hitReaction:Stop(0.2)
+                end)
+            end
+        end
+
+        if not self._pursuing then
+            if player then
+                local character = player.Character
+                if not character then
+                    warn("[NPC] - No Character to pursue!")
+                    return
+                end
+
+                self:_startPursuit(character)
+            end
         end
     end))
 
@@ -263,8 +290,17 @@ function NPC.new(obj)
 
     self._maid:AddTask(self._humanoid.Died:Connect(function()
         -- TODO: Play death effect
+        EffectPlayerService:PlayCustom("EnemyDeathEffect", "new", self._humanoidRootPart.Position)
         self.Died:Fire()
         self._obj:Destroy()
+    end))
+
+    self._maid:AddTask(self.Died:Connect(function()
+        if self._settings.SpecialReward then
+            for _, player in ipairs(Players:GetPlayers()) do
+                UserData:GiveSpecialReward(player.UserId, self._settings.SpecialReward)
+            end
+        end
     end))
 
     -- if self._animations.Idle then
@@ -323,6 +359,7 @@ end
 
 function NPC:_attack(character)
     local attack = self._nextAttack.Class
+    self._playingAttack = attack
     self:_pickRandomAttack()
     attack:Play(character).Stopped:Wait()
     return attack.GetHitDebounce and attack:GetHitDebounce() or 0
@@ -493,6 +530,7 @@ function NPC:_updateAlignment(rootPart)
 end
 
 function NPC:_startPursuit(character)
+    self._pursuing = true
     self._animations.Walk:Stop()
     self:StopWalkEffects()
     self._humanoid.WalkSpeed = self._settings.RunSpeed
@@ -543,9 +581,15 @@ function NPC:_startPursuit(character)
             self._humanoid:MoveTo(self._humanoidRootPart.Position)
             self._maid.PursuitUpdate = nil
 
-            self._maid:AddTask(task.delay(self:_attack(character) + self._settings.AttackRefresh, function()
-                self:_startPursuit(character)
-            end))
+            if not self._hitReacting then
+                self._maid:AddTask(task.delay(self:_attack(character) + self._settings.AttackRefresh, function()
+                    self:_startPursuit(character)
+                end))
+            else
+                self._maid:AddTask(task.delay(0.5, function()
+                    self:_startPursuit(character)
+                end))
+            end
             return
         end
 
@@ -560,6 +604,7 @@ end
 
 function NPC:_stopPursuit()
     self.StateChanged:Fire("Idle")
+    self._pursuing = false
 
     self._humanoid.WalkSpeed = self._settings.WalkSpeed
     self._alignOrientation.Enabled = false

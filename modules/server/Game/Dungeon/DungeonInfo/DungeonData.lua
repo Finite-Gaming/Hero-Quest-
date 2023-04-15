@@ -20,7 +20,7 @@ local DATA = {
             };
             BossDeath = {
                 first_time = "Warden_Beware_Sisters";
-                returning_def = "RAHHHHHHHHHHHHHHHHHHH"; -- replace with animal dying lol noob
+                returning_def = "Hurt_Roar";
             };
         };
     };

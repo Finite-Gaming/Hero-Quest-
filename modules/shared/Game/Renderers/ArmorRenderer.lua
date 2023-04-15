@@ -64,22 +64,22 @@ local soundIds = {
 -- Initialize remote listener
 function ArmorRenderer:Init()
     --Future optimisation: cframe all current parts from a table rather than creating a new thread for each
-    Network:GetRemoteEvent(ItemServiceConstants.ARMOR_EVENT_REMOTE_EVENT_NAME).OnClientEvent:Connect(function(ArmorFolder)
-        --//Vars
-        local Chr = ArmorFolder.Parent
+    -- Network:GetRemoteEvent(ItemServiceConstants.ARMOR_EVENT_REMOTE_EVENT_NAME).OnClientEvent:Connect(function(ArmorFolder)
+    --     --//Vars
+    --     local Chr = ArmorFolder.Parent
 
-        --//Functions
-        for _, v in pairs(Chr:GetChildren()) do
-            if (v:IsA("Part") or v:IsA("BasePart")) and v.Name ~= 'HumanoidRootPart' and v.Name ~= 'Head' then
-                --NeonLimbEffect(v)
-                task.spawn(self._neonLimbEffect, self, v)
-            end
-        end
+    --     --//Functions
+    --     for _, v in pairs(Chr:GetChildren()) do
+    --         if (v:IsA("Part") or v:IsA("BasePart")) and v.Name ~= 'HumanoidRootPart' and v.Name ~= 'Head' then
+    --             --NeonLimbEffect(v)
+    --             task.spawn(self._neonLimbEffect, self, v)
+    --         end
+    --     end
 
-        for _,v in pairs(ArmorFolder:GetChildren()) do
-            self:_perLimbModel(Chr, v)
-        end
-    end)
+    --     for _,v in pairs(ArmorFolder:GetChildren()) do
+    --         self:_perLimbModel(Chr, v)
+    --     end
+    -- end)
 end
 
 function ArmorRenderer:_neonLimbEffect(Limb) -- Real Limb

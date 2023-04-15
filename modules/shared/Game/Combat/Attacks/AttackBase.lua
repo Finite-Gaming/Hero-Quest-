@@ -16,6 +16,7 @@ function AttackBase.new(obj, animationFolder)
     local self = setmetatable(BaseObject.new(obj), AttackBase)
 
     self._humanoid = obj._humanoid
+    self._playing = false
 
     self._animationFolder = animationFolder
     self._animationTracks = {}
@@ -40,6 +41,10 @@ function AttackBase.new(obj, animationFolder)
             self.SoundPlayed:Fire(soundName)
         end))
 
+        self._maid:AddTask(attackTrack.Stopped:Connect(function()
+            self._playing = false
+        end))
+
         table.insert(self._animationTracks, attackTrack)
         self._trackMap[#self._animationTracks] = attackAnimation
     end
@@ -52,13 +57,30 @@ function AttackBase.new(obj, animationFolder)
     return self
 end
 
+function AttackBase:Cancel()
+    self._playing = false
+    if self._playingTrack then
+        self._playingTrack:Stop(0)
+    end
+    self.EndHitscan:Fire()
+end
+
+function AttackBase:IsPlaying()
+    return self._playing
+end
+
 function AttackBase:GetAnimationTrack(index)
     return self._animationTracks[index]
 end
 
 function AttackBase:Play(character)
+    if self._playing then
+        return self._playingTrack
+    end
+    self._playing = true
     local trackIndex = math.random(1, #self._animationTracks)
     local randomTrack = self._animationTracks[trackIndex]
+    self._playingTrack = randomTrack
     randomTrack:Play(nil, nil, self._trackMap[trackIndex]:GetAttribute("SpeedModifier") or 1)
 
     self.AttackPlayed:Fire(character)

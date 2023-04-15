@@ -63,7 +63,7 @@ function MeleeWeaponClient.new(obj)
     self._raycaster = Raycaster.new()
     self._raycaster:Ignore(self._character)
     self._raycaster:Ignore(workspace.Terrain)
-    self._raycaster.Visualize = true
+    -- self._raycaster.Visualize = true
 
     self._humanoid = self._character:WaitForChild("Humanoid")
 
@@ -175,9 +175,14 @@ function MeleeWeaponClient:_tryAttack()
     end
     self._lastHit = attackTick
 
+    local attack = self._attacks[1]
+    if attack:IsPlaying() then
+        return
+    end
+
     self._remoteEvent:FireServer("Attack")
     self._trail.Enabled = true
-    self._attacks[1]:Play()
+    attack:Play().Stopped:Wait()
     self._trail.Enabled = false
 end
 

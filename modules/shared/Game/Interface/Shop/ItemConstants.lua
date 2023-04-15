@@ -43,7 +43,7 @@ return {
             ProductId = 1354616460;
         }
     };
-    Armor = {
+    Armors = {
         -- Basic/default armor
         BasicArmor = {
             NotBuyable = true;

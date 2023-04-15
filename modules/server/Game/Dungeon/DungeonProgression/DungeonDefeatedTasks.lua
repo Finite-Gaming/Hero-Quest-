@@ -29,10 +29,12 @@ function DungeonDefeatedTasks:Run()
         end
     end
 
-    -- play animation, wait for few secs, teleport
-    for _, player in ipairs(Players:GetPlayers()) do
-        EffectPlayerService:PlayCustom("PlayerTeleportAnimation", "exit", player)
-    end
+    task.delay(4, function()
+        -- play animation, wait for few secs, teleport
+        for _, player in ipairs(Players:GetPlayers()) do
+            EffectPlayerService:PlayCustom("PlayerTeleportAnimation", "exit", player)
+        end
+    end)
 end
 
 return DungeonDefeatedTasks

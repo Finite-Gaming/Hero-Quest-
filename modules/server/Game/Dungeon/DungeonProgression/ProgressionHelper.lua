@@ -7,10 +7,9 @@ local require = require(game:GetService("ReplicatedStorage"):WaitForChild("Compl
 local DungeonData = require("DungeonData")
 local PlayerLevelCalculator = require("PlayerLevelCalculator")
 local SoundPlayer = require("SoundPlayer")
+local StudioDebugConstants = require("StudioDebugConstants")
 
 local RunService = game:GetService("RunService")
-
-local STUDIO_BYPASS_ENABLED = true
 
 local ProgressionHelper = {}
 
@@ -46,14 +45,14 @@ function ProgressionHelper:PlaySoundForScenario(scenario, ...)
 end
 
 function ProgressionHelper:IsNewPlayers()
-    if RunService:IsStudio() and STUDIO_BYPASS_ENABLED then
+    if RunService:IsStudio() and StudioDebugConstants.SimulateRecurringPlayer then
         return false
     end
     return self._newPlayers
 end
 
 function ProgressionHelper:IsLevelMaxed()
-    if RunService:IsStudio() and STUDIO_BYPASS_ENABLED then
+    if RunService:IsStudio() and StudioDebugConstants.SimulateRecurringPlayer then
         return false
     end
     return not self._newPlayers and self._levelMaxed

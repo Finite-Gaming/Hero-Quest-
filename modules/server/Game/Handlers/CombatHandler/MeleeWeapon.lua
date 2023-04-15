@@ -19,8 +19,6 @@ local GENERIC_ANIMATIONS = ANIMATIONS:WaitForChild("Generic")
 local ONE_HANDED_ANIMATIONS = ANIMATIONS:WaitForChild("OneHanded")
 local TWO_HANDED_ANIMATIONS = ANIMATIONS:WaitForChild("TwoHanded")
 
-local DAMAGE = 1000 -- Obviously will be replaced
-
 local MeleeWeapon = setmetatable({}, BaseObject)
 MeleeWeapon.__index = MeleeWeapon
 
@@ -47,6 +45,8 @@ function MeleeWeapon.new(obj)
     self._remoteEvent = Instance.new("RemoteEvent")
     self._remoteEvent.Name = MeleeWeaponConstants.REMOTE_EVENT_NAME
     self._remoteEvent.Parent = self._obj
+
+    self._damageRange = self._obj:GetAttribute("Damage")
 
     self._lastAttack = os.clock()
     self._cachedHits = {}
@@ -83,11 +83,11 @@ function MeleeWeapon.new(obj)
     return self
 end
 
-function MeleeWeapon:_handleHit(instance, position)
-    if not self._attacking then
-        return
-    end
+function MeleeWeapon:_getDamage()
+    return math.random(self._damageRange.Min, self._damageRange.Max)
+end
 
+function MeleeWeapon:_handleHit(instance, position)
     -- TODO: Validate hit
     local humanoid = HumanoidUtils.getHumanoid(instance)
     if humanoid then
@@ -95,17 +95,18 @@ function MeleeWeapon:_handleHit(instance, position)
             return
         end
         self._cachedHits[humanoid] = true
+        local damage = self:_getDamage()
 
         if not humanoid:GetAttribute("Invincible") then
             local damageTracker = ServerClassBinders.DamageTracker:Get(humanoid)
             if not damageTracker then
-                humanoid:TakeDamage(DAMAGE)
+                humanoid:TakeDamage(damage)
             else
-                damageTracker:Damage(DAMAGE, self._player)
+                damageTracker:Damage(damage, self._player)
             end
         end
 
-        DamageFeedback:SendFeedback(humanoid, 10, position)
+        DamageFeedback:SendFeedback(humanoid, damage, position)
     end
 end
 
@@ -125,13 +126,13 @@ end
 function MeleeWeapon:_handleEquipped()
     self._equipped = true
 
-    --self._character.Animate.run.Animation.AnimationId = (self._animationFolder:FindFirstChild("Run") or GENERIC_ANIMATIONS.Run).AnimationId
+    self._character.Animate.run:FindFirstChildOfClass("Animation").AnimationId = (self._animationFolder:FindFirstChild("Run") or GENERIC_ANIMATIONS.Run).AnimationId
 end
 
 function MeleeWeapon:_handleUnequipped()
     self._equipped = false
 
-    --self._character.Animate.run.Animation.AnimationId = "http://www.roblox.com/asset/?id=4417979645"
+    self._character.Animate.run:FindFirstChildOfClass("Animation").AnimationId = "http://www.roblox.com/asset/?id=4417979645"
 end
 
 return MeleeWeapon

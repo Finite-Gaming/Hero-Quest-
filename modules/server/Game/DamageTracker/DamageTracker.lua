@@ -24,12 +24,14 @@ function DamageTracker:Damage(amount, player)
     if player then
         local totalDamage = self._playerDamage[player]
         if totalDamage then
-            self._playerDamage = totalDamage + amount
+            self._playerDamage[player] += amount
+        else
+            self._playerDamage[player] = amount
         end
     end
 
     self._obj:TakeDamage(amount)
-    self.Damaged:Fire(amount, player)
+    self.Damaged:Fire(amount, player, self._obj.Health/self._obj.MaxHealth)
 end
 
 function DamageTracker:GetPlayerDamage(player)

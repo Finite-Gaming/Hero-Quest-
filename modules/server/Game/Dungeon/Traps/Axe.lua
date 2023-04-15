@@ -37,14 +37,14 @@ function Axe.new(obj)
     self._hinge.TargetAngle = TARGET_ANGLE * (math.random(1, 2) == 1 and 1 or -1)
     self._maid:AddTask(RunService.Heartbeat:Connect(function()
         local updateTick = os.clock()
-        if updateTick - self._lastUpdate < 1/30 then
+        if updateTick - self._lastUpdate < 1/20 then
             return
         end
         self._lastUpdate = updateTick
 
         local currentAngle = math.round(self._hinge.CurrentAngle)
 
-        if math.abs(currentAngle) == TARGET_ANGLE then
+        if math.abs(currentAngle) + 1 >= TARGET_ANGLE then
             self._hinge.TargetAngle = -currentAngle
             self:_playSound()
             self._remoteEvent:FireAllClients()

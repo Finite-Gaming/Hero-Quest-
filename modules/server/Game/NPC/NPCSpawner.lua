@@ -100,13 +100,15 @@ function NPCSpawner:SetupZone(npcZoneName)
                     chaseChance = 10
                 end
             end))
-            zoneMaid:AddTask(npc.DamageTracker.Damaged:Connect(function()
-                if math.random(1, 10) == 1 then
-                    VoicelineService:PlayRandomGroupForZone(("%s_Damaged"):format(variant), npcZoneName, rootPart)
+            zoneMaid:AddTask(npc.DamageTracker.Damaged:Connect(function(_, _, healthP)
+                if healthP <= 0.25 then
+                    if math.random(1, 10) == 1 then
+                        VoicelineService:PlayRandomGroupForZone(("%s_Damaged"):format(variant), npcZoneName, rootPart)
+                    end
                 end
             end))
 
-            task.wait() -- stop spam replication packets
+            task.wait() -- stop spam replication
         end
     end
 

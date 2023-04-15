@@ -6,9 +6,12 @@ local require = require(game:GetService("ReplicatedStorage"):WaitForChild("Compl
 
 local GameManager = require("GameManager")
 
+require("UserDataClient"):Init()
+
 require("GuiTemplateProvider"):Init()
 require("ClientClassBinders"):Init()
 
+require("ItemRewardClient"):Init()
 require("DamageFeedbackClient"):Init()
 require("ArmorRenderer"):Init()
 require("SoundPlayer"):Init()

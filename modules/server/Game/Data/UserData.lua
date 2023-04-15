@@ -9,6 +9,9 @@ local HttpService = game:GetService("HttpService")
 local ItemConstants = require("ItemConstants")
 local Signal = require("Signal")
 local DefaultData = require("DefaultData")
+local Network = require("Network")
+local ItemRewardConstants = require("ItemRewardConstants")
+local SpecialRewards = require("SpecialRewards")
 
 -- ProfileService (data storage)
 local ProfileService = require("ProfileService")
@@ -21,6 +24,7 @@ local ProfileStore = ProfileService.GetProfileStore(
 
 local UserData = {
 	UserProfiles = {};
+    _rewardRemoteEvent = Network:GetRemoteEvent(ItemRewardConstants.REMOTE_EVENT_NAME);
 }
 
 local profileReady = Instance.new("BindableEvent")
@@ -62,30 +66,14 @@ local MONTH = DAY * 30
     Money = int
     XP = int
 }]]
-local SpecialRewards = {
-    -- Special rewards are like "bundles" in a way, they are just a way to award a set of items at once
-	-- Default
-	Starter = {
-		Weapons = {
-			BasicSword = 1;
-		};
-		Armor = {
-			BasicArmor = 1;
-		};
-		Pets = {
-			StarterPet = 1;
-		};
-	};
-	-- Alpha tester gear
-	ItCameFromTheDeep = {
-		Weapons = {
-			AlphaHammer = 1;
-		};
-		Armor = {
-			AlphaArmor = 1;
-		};
-	};
-}
+
+function UserData:FindPlayer(userId)
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player.UserId == userId then
+            return player
+        end
+    end
+end
 
 -- Gives a special reward from the table above (will only provide it once)
 function UserData:GiveSpecialReward(userId, rewardName)
@@ -96,9 +84,24 @@ function UserData:GiveSpecialReward(userId, rewardName)
 	if not rewards[rewardName] then
 		local reward = assert(SpecialRewards[rewardName], string.format("%s is not a valid special reward.", rewardName))
 
-		for _, itemType in ipairs({"Weapons", "Armor", "Pets"}) do
-            for _, itemKey in ipairs(reward[itemType] or {}) do
-                self:AwardItem(userId, itemType, itemKey)
+        local keyTable = {}
+		for _, itemType in ipairs({"Weapons", "Armors", "Pets"}) do
+            local countTable = reward[itemType] or {}
+            local tableCopy = {}
+            for itemKey, count in pairs(countTable) do
+                if typeof(count) == "NumberRange" then
+                    count = math.random(count.Min, count.Max)
+                end
+                tableCopy[itemKey] = count
+                self:AwardItem(userId, itemType, itemKey, count)
+            end
+            keyTable[itemType] = tableCopy
+        end
+
+        if reward.PromptReward then
+            local player = self:FindPlayer(userId)
+            if player then
+                self._rewardRemoteEvent:FireClient(player, keyTable)
             end
         end
 
@@ -115,7 +118,9 @@ function UserData:GiveSpecialReward(userId, rewardName)
 		-- print("Has weapons:", data.Weapons)
 		-- print("Has armors:", data.Armors)
 		-- print("Has pets:", data.Pets)
-		rewards[rewardName] = true
+        if not reward.RewardMultiple then
+		    rewards[rewardName] = true
+        end
 	else
 		-- Player already has the reward
 		warn(string.format("User %d already has the special reward %s", userId, rewardName))
@@ -124,19 +129,18 @@ end
 
 local secureOwnedItemTypeKeys = {
     Weapons = true;
-    Armor = true;
+    Armors = true;
     Pets = true;
 }
 function UserData:AwardItem(userId, itemType, itemKey, amount)
     -- Strict arg validating here as we dont want to corrupt data
-    print(userId, itemType, itemKey, amount)
     amount = amount or 1
     assert(amount == amount and amount > 0, "Invalid amount")
     assert(secureOwnedItemTypeKeys[itemType], "Invalid itemType")
     local itemConstants = assert(ItemConstants[itemType][itemKey], "Invalid itemKey")
-    assert(not itemConstants.Stackable and amount > 1, "Item is not stackable, higher quantity than 1 was provided")
+    assert(not itemConstants.Stackable and amount == 1, "Item is not stackable, higher quantity than 1 was provided")
 
-	local profile = UserData:GetProfile(userId)
+	local profile = self:WaitForProfile(userId)
     local itemEntry = profile.Data[itemType][itemKey]
 
     if itemEntry then
@@ -152,7 +156,7 @@ end
 
 function UserData:GetOwnedItems(userId, itemType)
     assert(secureOwnedItemTypeKeys[itemType], "Invalid itemType")
-	local profile = UserData:GetProfile(userId)
+	local profile = self:WaitForProfile(userId)
     local tableCopy = {} -- returning a reference can be bad here
 
     for key, data in pairs(profile.Data[itemType]) do

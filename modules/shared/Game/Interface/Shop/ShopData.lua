@@ -15,7 +15,7 @@ local function Category(displayName, categoryKey)
 end
 
 return {
-    Category("Armor", "Armor"); -- Display name, ItemConstants key
+    Category("Armor", "Armors"); -- Display name, ItemConstants key
     Category("Weapons", "Weapons");
     Category("Pets", "Pets");
     Category("Armor Effects", "ArmorEffects");

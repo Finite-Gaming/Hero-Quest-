@@ -1,5 +1,5 @@
 --- Disallows players colliding with eachother
--- @classmod SettingsService
+-- @classmod PlayerNoCollideService
 -- @author unknown, frick
 
 local Players = game:GetService("Players")

@@ -57,7 +57,7 @@ function ArmorHandler:_updateCharacter(player, character)
 		player:SetAttribute("ArmorSet", defaultArmorSet)
 		local selected = player:GetAttribute("ArmorSet")
 		print(selected)
-		local armorData = ItemConstants.Armor[selected]
+		local armorData = ItemConstants.Armors[selected]
 
 		if armorData.Health then -- TODO: Possibly move this to ArmorService.lua
 			character.Humanoid.MaxHealth = math.floor(100 * armorData.Health)

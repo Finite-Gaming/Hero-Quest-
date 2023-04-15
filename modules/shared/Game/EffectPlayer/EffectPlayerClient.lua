@@ -10,6 +10,8 @@ local EffectPlayerConstants = require("EffectPlayerConstants")
 local Network = require("Network")
 local TemplateProvider = require("TemplateProvider")
 
+local DEFAULT_EMIT_COUNT = NumberRange.new(1, 3)
+
 local EffectPlayerClient = {}
 
 function EffectPlayerClient:Init()
@@ -37,10 +39,11 @@ function EffectPlayerClient:PlayEffect(effectName, position)
             maxLifetime = max
         end
 
-        particle:Emit(math.random(1, 3))
+        local emitCount = particle:GetAttribute("EmitCount") or DEFAULT_EMIT_COUNT
+        particle:Emit(math.random(emitCount.Min, emitCount.Max))
     end
 
-    task.delay(maxLifetime, function()
+    task.delay(maxLifetime + 1, function()
         effect:Destroy()
     end)
 end
