@@ -10,7 +10,7 @@ local RunService = game:GetService("RunService")
 local BaseObject = require("BaseObject")
 local Signal = require("Signal")
 
-local DEFAULT_UNLOCK_DISTANCE = 20
+local DEFAULT_UNLOCK_DISTANCE = 64
 
 local HumanoidLocker = setmetatable({}, BaseObject)
 HumanoidLocker.__index = HumanoidLocker

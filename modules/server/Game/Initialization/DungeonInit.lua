@@ -12,6 +12,7 @@ function DungeonInit:Init()
     require("TeamLocker"):Init()
     require("DoorOpener"):Init()
     require("RoomManager"):Init()
+    require("CleaverTossServer"):Init()
     -- require("StartBubble"):Init()
 end
 

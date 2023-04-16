@@ -24,6 +24,7 @@ local ChargeAttack = require("ChargeAttack")
 local VoicelineService = require("VoicelineService")
 local UserData = require("UserData")
 local EffectPlayerService = require("EffectPlayerService")
+local CleaverTossAttack = require("CleaverTossAttack")
 
 local DEBUG_ENABLED = false -- Setting this to true will show debug ray parts, and display the NPC's FOV
 
@@ -72,6 +73,11 @@ local ENEMY_SETTINGS = {
                 Class = ChargeAttack;
                 Range = 64;
                 WeaponName = "Hitbox";
+            };
+            {
+                Class = CleaverTossAttack;
+                Range = 76;
+                WeaponName = "Axe";
             };
         };
 
@@ -313,6 +319,10 @@ function NPC.new(obj)
     return self
 end
 
+function NPC:GetTarget()
+    return self._target
+end
+
 function NPC:GetState()
     return self._state or "Idle"
 end
@@ -530,6 +540,7 @@ function NPC:_updateAlignment(rootPart)
 end
 
 function NPC:_startPursuit(character)
+    self._target = character
     self._pursuing = true
     self._animations.Walk:Stop()
     self:StopWalkEffects()
@@ -604,6 +615,7 @@ end
 
 function NPC:_stopPursuit()
     self.StateChanged:Fire("Idle")
+    self._target = nil
     self._pursuing = false
 
     self._humanoid.WalkSpeed = self._settings.WalkSpeed

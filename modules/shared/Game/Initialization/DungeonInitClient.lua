@@ -8,6 +8,7 @@ local DungeonInitClient = {}
 
 function DungeonInitClient:Init()
     require("DoorOpenerClient"):Init()
+    require("CleaverTossHandler"):Init()
 end
 
 return DungeonInitClient
