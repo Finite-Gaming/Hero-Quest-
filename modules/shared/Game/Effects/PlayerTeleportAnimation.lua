@@ -8,9 +8,10 @@ local BaseObject = require("BaseObject")
 local AnimationTrack = require("AnimationTrack")
 local AlignPosition = require("AlignPosition")
 local AlignOrientation = require("AlignOrientation")
+local EffectPlayerClient = require("EffectPlayerClient")
+local SoundPlayer = require("SoundPlayer")
 
 local Players = game:GetService("Players")
-local TweenService = game:GetService("TweenService")
 
 local PlayerTeleportAnimation = setmetatable({}, BaseObject)
 PlayerTeleportAnimation.__index = PlayerTeleportAnimation
@@ -43,23 +44,29 @@ function PlayerTeleportAnimation.exit(player)
     local alignPosition = AlignPosition.new(rootPart.RootRigAttachment, attachment1)
     local alignOrientation = AlignOrientation.new(rootPart.RootRigAttachment)
 
-    alignPosition.MaxForce = 20000
-    alignPosition.MaxVelocity = 24
+    alignPosition.MaxForce = 40000
+    alignPosition.MaxVelocity = 64
 
     alignOrientation.RigidityEnabled = true
-    alignOrientation.CFrame = rootPart.RootRigAttachment.WorldCFrame
+    local rigCFrame = rootPart.RootRigAttachment.WorldCFrame
+    alignOrientation.CFrame = rigCFrame
+
+    local effectColor = Color3.fromHSV(Random.new():NextNumber(), 1, 1)
 
     ascendTrack:GetMarkerReachedSignal("StartFloat"):Connect(function()
         local rootPos = rootPart.Position
-        attachment1.WorldPosition = rootPos + Vector3.new(0, 15, 0)
-
-        alignPosition.Enabled = true
+        attachment1.WorldPosition = rootPos + Vector3.new(0, 2048, 0)
+        workspace.CurrentCamera.CameraType = Enum.CameraType.Fixed
 
         alignOrientation.CFrame = rootPart.RootRigAttachment.WorldCFrame
-        alignOrientation.Enabled = true
 
+        rootPart.AssemblyAngularVelocity = Vector3.zero
+        rootPart.AssemblyLinearVelocity = Vector3.zero
         humanoid:SetStateEnabled(Enum.HumanoidStateType.Physics, true)
         humanoid.PlatformStand = true
+
+        alignPosition.Enabled = true
+        alignOrientation.Enabled = true
 
         for _, part in ipairs(character:GetDescendants()) do
             if part:IsA("SurfaceAppearance") then
@@ -69,23 +76,11 @@ function PlayerTeleportAnimation.exit(player)
             if not part:IsA("BasePart") then
                 continue
             end
-    
+
+            part.CanCollide = false
             part.Material = Enum.Material.ForceField
-            part.Color = Color3.new(1, 1, 1)
+            part.Color = effectColor
         end
-
-        local ballPart = self:_makeNeonPart(Enum.PartType.Ball)
-        local cylinderPart = self:_makeNeonPart(Enum.PartType.Cylinder)
-
-        ballPart.Size, cylinderPart.Size = Vector3.zero, Vector3.xAxis * 2048
-        ballPart.Position, cylinderPart.CFrame = rootPos, CFrame.new(rootPos + Vector3.new(0, 1024)) * CFrame.Angles(0, 0, math.pi/2)
-        ballPart.Transparency, cylinderPart.Transparency = 1, 1
-
-        local tweenInfo = TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-        TweenService:Create(ballPart, tweenInfo, {Transparency = 0.3, Size = Vector3.one * 16}):Play()
-        TweenService:Create(cylinderPart, tweenInfo, {Transparency = 0.3, Size = Vector3.new(2048, 8, 8)}):Play()
-
-        ballPart.Parent, cylinderPart.Parent = workspace.Terrain, workspace.Terrain
     end)
     ascendTrack.Stopped:Connect(function()
         ascendLoopTrack:Play()
@@ -100,20 +95,20 @@ function PlayerTeleportAnimation.exit(player)
     alignPosition.Parent = rootPart
     alignOrientation.Parent = rootPart
 
+    task.delay(1.3, function()
+        EffectPlayerClient:PlayEffect(
+            "TPEffectStart",
+            rigCFrame.Position,
+            effectColor
+        )
+    end)
+
+    task.delay(0.2, function()
+        SoundPlayer:PlaySound("Teleport_PhaseOut")
+    end)
     ascendTrack:Play()
 
     return self
-end
-
-function PlayerTeleportAnimation:_makeNeonPart(shape)
-    local part = Instance.new("Part")
-    part.Shape = shape
-    part.Material = Enum.Material.Neon
-    part.CanCollide = false
-    part.Anchored = true
-    part.CanTouch = false
-    part.CanQuery = false
-    return part
 end
 
 return PlayerTeleportAnimation

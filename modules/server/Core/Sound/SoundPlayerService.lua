@@ -18,7 +18,7 @@ function SoundPlayerService:PlaySound(soundName)
 end
 
 function SoundPlayerService:PlaySoundAtPart(soundName, part)
-    self._remoteEvent:FireAllClients("PlaySoundAtPart", soundName, part)
+    self._remoteEvent:FireAllClients("PlaySoundAtPart", part, soundName)
 end
 
 return SoundPlayerService

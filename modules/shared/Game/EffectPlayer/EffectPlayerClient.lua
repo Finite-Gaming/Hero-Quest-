@@ -11,6 +11,11 @@ local Network = require("Network")
 local TemplateProvider = require("TemplateProvider")
 
 local DEFAULT_EMIT_COUNT = NumberRange.new(1, 3)
+local EFFECT_TYPES = {
+    ["PointLight"] = true;
+    ["Beam"] = true;
+    ["Trail"] = true;
+}
 
 local EffectPlayerClient = {}
 
@@ -23,29 +28,61 @@ function EffectPlayerClient:Init()
     end)
 end
 
-function EffectPlayerClient:PlayEffect(effectName, position)
+function EffectPlayerClient:PlayEffect(effectName, position, color)
     local effect = self._provider:Get(effectName)
-    local maxLifetime = -math.huge
+    local maxLifetime = 0
+    local maxDelay = 0
+
+    effect.Anchored = true
     effect.Position = position
     effect.Parent = workspace.Terrain
 
+    if color and typeof(color) == "Color3" then
+        color = ColorSequence.new(color)
+    end
+
     for _, particle in ipairs(effect:GetDescendants()) do
-        if not particle:IsA("ParticleEmitter") then
+        if particle:IsA("ParticleEmitter") then
+            local max = particle.Lifetime.Max
+            if max > maxLifetime then
+                maxLifetime = max
+            end
+
+            local emitDelay = particle:GetAttribute("EmitDelay")
+            local emitCount = particle:GetAttribute("EmitCount") or DEFAULT_EMIT_COUNT
+            local emitted = nil
+            if typeof(emitCount) == "number" then
+                emitted = emitCount
+            elseif typeof(emitCount) == "NumberRange" then
+                emitted = math.random(emitCount.Min, emitCount.Max)
+            end
+
+            if emitDelay and emitDelay ~= 0 then
+                if emitDelay > maxDelay then
+                    maxDelay = emitDelay
+                end
+
+                task.delay(emitDelay, particle.Emit, particle, emitted)
+            else
+                particle:Emit(emitted)
+            end
+        elseif EFFECT_TYPES[particle.ClassName] then
+            particle.Enabled = true
+        else
             continue
         end
 
-        local max = particle.Lifetime.Max
-        if max > maxLifetime then
-            maxLifetime = max
+        if color then
+            particle.Color = color
         end
-
-        local emitCount = particle:GetAttribute("EmitCount") or DEFAULT_EMIT_COUNT
-        particle:Emit(math.random(emitCount.Min, emitCount.Max))
     end
 
-    task.delay(maxLifetime + 1, function()
-        effect:Destroy()
-    end)
+    if not effect:GetAttribute("EffectPersist") then
+        local addedDelay = effect:GetAttribute("Lifetime") or 1
+        task.delay(maxLifetime + maxDelay + addedDelay, function()
+            effect:Destroy()
+        end)
+    end
 end
 
 function EffectPlayerClient:PlayCustom(effectName, param, ...)

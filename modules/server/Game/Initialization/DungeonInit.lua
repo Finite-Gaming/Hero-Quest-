@@ -8,6 +8,7 @@ local DungeonInit = {}
 
 function DungeonInit:Init()
     require("ServerTemplateProvider"):Init()
+    require("NPCOverlapParams"):Init()
     require("NPCSpawner"):Init()
     require("TeamLocker"):Init()
     require("DoorOpener"):Init()

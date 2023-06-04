@@ -4,7 +4,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 
 local UIButton = require("UIButton")
-local DUNGEONS = require("DungeonEntries")
+local DUNGEONS = require("DungeonData")
 local ColorSequenceUtil = require("ColorSequenceUtil")
 
 export type PartyParameters = {

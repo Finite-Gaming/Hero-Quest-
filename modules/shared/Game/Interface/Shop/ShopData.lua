@@ -18,6 +18,5 @@ return {
     Category("Armor", "Armors"); -- Display name, ItemConstants key
     Category("Weapons", "Weapons");
     Category("Pets", "Pets");
-    Category("Armor Effects", "ArmorEffects");
     Category("Abilities", "Abilities")
 }

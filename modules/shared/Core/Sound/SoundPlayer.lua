@@ -7,6 +7,7 @@ local require = require(game:GetService("ReplicatedStorage"):WaitForChild("Compl
 local SoundConstants = require("SoundConstants")
 local Network = require("Network")
 local TemplateProvider = require("TemplateProvider")
+local SoundModifier = require("SoundModifier")
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local SoundService = game:GetService("SoundService")
@@ -31,6 +32,8 @@ end
 
 function SoundPlayer:PlaySoundAtPart(part, soundName, endedFunc)
     local sound = self._provider:Get(soundName)
+    SoundModifier:ProcessSound(sound)
+
     sound.Parent = part or SoundService
     sound.Ended:Connect(function()
         if endedFunc then
@@ -39,6 +42,8 @@ function SoundPlayer:PlaySoundAtPart(part, soundName, endedFunc)
         sound:Destroy()
     end)
     sound:Play()
+
+    return sound
 end
 
 return SoundPlayer

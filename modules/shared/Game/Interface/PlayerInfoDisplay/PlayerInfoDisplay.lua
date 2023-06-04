@@ -7,6 +7,11 @@ local require = require(game:GetService("ReplicatedStorage"):WaitForChild("Compl
 local BaseObject = require("BaseObject")
 local ScreenGuiProvider = require("ScreenGuiProvider")
 local GuiTemplateProvider = require("GuiTemplateProvider")
+local UserDataClient = require("UserDataClient")
+local PlayerPortraitUtil = require("PlayerPortraitUtil")
+local PlayerLevelCalculator = require("PlayerLevelCalculator")
+
+local Players = game:GetService("Players")
 
 local PlayerInfoDisplay = setmetatable({}, BaseObject)
 PlayerInfoDisplay.__index = PlayerInfoDisplay
@@ -17,6 +22,12 @@ function PlayerInfoDisplay.new(character)
     self._screenGui = self._maid:AddTask(ScreenGuiProvider:Get("PlayerInfoDisplay"))
     self._screenGui.IgnoreGuiInset = true
     self._gui = GuiTemplateProvider:Get("PlayerInfoDisplayTemplate")
+
+    self._userThumbnail = Players:GetUserThumbnailAsync(
+        Players.LocalPlayer.UserId,
+        Enum.ThumbnailType.AvatarBust,
+        Enum.ThumbnailSize.Size420x420
+    )
 
     self:_setupGui()
     self._gui.Parent = self._screenGui
@@ -30,8 +41,32 @@ function PlayerInfoDisplay.new(character)
     self._maid:AddTask(self._humanoid:GetPropertyChangedSignal("Health"):Connect(function()
         self:_updateSlider(self._healthBar, math.clamp(self._humanoid.Health, 0, self._maxHealth), self._maxHealth)
     end))
+    self:_updateSlider(self._healthBar, self._humanoid.Health, self._humanoid.MaxHealth)
+
+    self._maid:AddTask(Players.LocalPlayer:GetAttributeChangedSignal("XP"):Connect(function()
+        local xp = Players.LocalPlayer:GetAttribute("XP")
+        self:_updatePortrait(xp)
+        self:_updateSlider(self._experienceBar, xp, 1000000)
+    end))
+    task.spawn(function()
+        local xp = UserDataClient:GetExperience()
+        self:_updatePortrait(xp)
+        self:_updateSlider(self._experienceBar, xp, 1000000)
+    end)
+
+    self._maid:AddTask(Players.LocalPlayer:GetAttributeChangedSignal("Money"):Connect(function()
+        self:_updateSlider(self._moneyBar, Players.LocalPlayer:GetAttribute("Money"), 1000000)
+    end))
+    task.spawn(function()
+        self:_updateSlider(self._moneyBar, UserDataClient:GetMoney(), 1000000)
+    end)
 
     return self
+end
+
+function PlayerInfoDisplay:_updatePortrait(xp)
+    local portrait = PlayerPortraitUtil.update(self._gui.MainFrame.Portrait, PlayerLevelCalculator:GetLevelFromXP(xp))
+    portrait.PlayerImage.Image = self._userThumbnail
 end
 
 function PlayerInfoDisplay:_setupGui()
@@ -42,7 +77,11 @@ function PlayerInfoDisplay:_setupGui()
 
     self._healthBar = self._sliders.HealthBar
     self._experienceBar = self._sliders.ExperienceBar
-    self._currencyBar = self._sliders.CurrencyBar
+    self._moneyBar = self._sliders.CurrencyBar
+
+    self._nameLabel = self._mainFrame.NameLabel
+
+    self._nameLabel.Text = Players.LocalPlayer.Name
 end
 
 function PlayerInfoDisplay:_updateSlider(slider, value, maxValue)

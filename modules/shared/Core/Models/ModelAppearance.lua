@@ -63,7 +63,6 @@ function ModelAppearance:ResetMaterial()
     self:_setProperty("Material")
 end
 
-
 function ModelAppearance:_setProperty(property, value)
     for _, part in ipairs(self._parts) do
         if part.Transparency == 1 then

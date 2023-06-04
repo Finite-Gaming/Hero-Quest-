@@ -35,7 +35,7 @@ end
 Raycaster.Whitelist = Raycaster.Ignore
 
 function Raycaster:CastTo(origin, pointB)
-    return self:Cast(origin, (origin - pointB))
+    return self:Cast(origin, pointB - origin)
 end
 
 function Raycaster:Cast(origin, direction)

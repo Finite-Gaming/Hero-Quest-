@@ -12,7 +12,7 @@ local GuiTemplateProvider = require("GuiTemplateProvider")
 local ShopData = require("ShopData")
 local Network = require("Network")
 local ShopConstants = require("ShopConstants")
-local UIBlur = require("UIBlur")
+local ExitButtonMixin = require("ExitButtonMixin")
 
 local DEFAULT_THUMBNAIL = "rbxassetid://12017700691" -- Image that will be displayed if an item is missing a thumbnail
 
@@ -43,15 +43,6 @@ function ShopInterface.new(character)
     return self
 end
 
-function ShopInterface:SetEnabled(bool)
-    self._screenGui.Enabled = bool
-    UIBlur:SetEnabled(bool)
-end
-
-function ShopInterface:IsEnabled()
-    return self._screenGui.Enabled
-end
-
 function ShopInterface:_setupGui()
     self._mainFrame = self._gui.MainFrame
     self._scrollingFrame = self._mainFrame.ScrollingFrame
@@ -74,7 +65,7 @@ function ShopInterface:_setupGui()
 
         local orderedElements = {}
 
-        for itemKey, itemData in pairs(shopCategory.Items) do            
+        for itemKey, itemData in pairs(shopCategory.Items) do
             if itemData.NotBuyable then
                 continue
             end
@@ -111,10 +102,10 @@ function ShopInterface:_setupGui()
     end
 
     self._mainFrame.ExitButton.Activated:Connect(function()
-        self:SetEnabled(false)
         self:_showCategory(self._currentCategory)
     end)
 
+    ExitButtonMixin:Add(self)
     self._subframe.ExitButton.Activated:Connect(function()
         self:_showCategory(self._currentCategory)
     end)

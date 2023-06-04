@@ -6,6 +6,7 @@ local require = require(game:GetService("ReplicatedStorage"):WaitForChild("Compl
 
 local DamageFeedback = require("DamageFeedback")
 local ApplyImpulse = require("ApplyImpulse")
+local ServerClassBinders = require("ServerClassBinders")
 
 local Players = game:GetService("Players")
 
@@ -98,7 +99,12 @@ function PlayerDamageService:DamageCharacter(character, damage, cooldown, attack
     end
 
     if not humanoid:GetAttribute("Invincible") then
-        humanoid:TakeDamage(damage)
+        local damageTracker = ServerClassBinders.DamageTracker:Get(humanoid)
+        if not damageTracker then
+            humanoid:TakeDamage(damage)
+        else
+            damageTracker:Damage(damage, attacker)
+        end
     end
 
     DamageFeedback:SendFeedback(humanoid, damage)

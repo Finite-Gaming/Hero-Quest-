@@ -4,7 +4,10 @@
 
 local require = require(game:GetService("ReplicatedStorage"):WaitForChild("Compliance"))
 
+local SoundModifier = require("SoundModifier")
+
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
 local SoundService = game:GetService("SoundService")
 
 local VoicelineService = {}
@@ -45,6 +48,7 @@ function VoicelineService:PlayGroupForZone(groupName, zoneName, part, ignoreQueu
 
     self._zoneTracker[zoneName] = sound
 
+    SoundModifier:ProcessSound(sound)
     sound.Parent = part or SoundService
     sound.Ended:Connect(function()
         self._zoneTracker[zoneName] = nil
@@ -68,6 +72,7 @@ function VoicelineService:PlayGroup(groupName, part)
     end
     local sound = directory[math.random(1, #directory)]:Clone()
 
+    SoundModifier:ProcessSound(sound)
     sound.Parent = part or SoundService
     sound.Ended:Connect(function()
         sound:Destroy()

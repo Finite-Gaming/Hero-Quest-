@@ -16,6 +16,7 @@ local Maid = require("Maid")
 local Network = require("Network")
 local CharacterServiceConstants = require("CharacterServiceConstants")
 local LoadingScreenConstants = require("LoadingScreenConstants")
+local ContentHelper = require("ContentHelper")
 
 local CAMERA_ROT_SPEED = 10
 local STAGE_NAMES = LoadingScreenConstants.STAGE_NAMES
@@ -35,28 +36,38 @@ function LoadingScreen:Init()
     self._screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
     self._screenGui.IgnoreGuiInset = true
 
-    self._totalAssets = 0
+    self._totalAssets = ContentHelper:GetServerTotal() - 5 -- wiggle room because it woudl take too long to figure out where the leaks are
     self._loadedAssets = 0
 
-    StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false) -- Disable the backpack while loading
+    StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.All, false) -- Disable the coregui while loading
     self:_setupGui()
-    self:_gatherAssets()
 
     self:_updateLoadingBar()
     self._gui.Parent = self._screenGui
     ReplicatedFirst:RemoveDefaultLoadingScreen()
 
-    self._maid.LoadingBarUpdate = RunService.RenderStepped:Connect(function()
-        self:_updateLoadingBar()
-        self:_updateStageName()
-    end)
-    self._maid:AddTask(task.spawn(function() -- Add this thread so when the skip button is pressed execution is stopped immediately
-        self:_loadAssets()
-        self:_showMap()
+    local assetCount = ContentHelper:GetAssetCount()
+    self._maid:AddTask(task.spawn(function()
+        while assetCount < self._totalAssets do
+            assetCount = ContentHelper:GetAssetCount()
+
+            task.wait(0.5)
+        end
+
+        self._preloadedAssets = ContentHelper:GetAllAssets()
+
+        self._maid.LoadingBarUpdate = RunService.RenderStepped:Connect(function()
+            self:_updateLoadingBar()
+            self:_updateStageName()
+        end)
+        self._maid:AddTask(task.spawn(function() -- Add this thread so when the skip button is pressed execution is stopped immediately
+            self:_loadAssets()
+            -- self:_showMap()
+        end))
+        self._maid:AddTask(function()
+            self._streamingIn = true
+        end)
     end))
-    self._maid:AddTask(function()
-        self._streamingIn = true
-    end)
 end
 
 function LoadingScreen:_showMap()
@@ -99,51 +110,31 @@ function LoadingScreen:_playGame()
 
     self._maid:Destroy()
     Network:GetRemoteFunction(CharacterServiceConstants.DONE_LOADING_REMOTE_FUNCTION_NAME):InvokeServer()
-    StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, true) -- Re-enable the backpack
+    StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.All, true) -- Re-enable the coregui
 end
 
 function LoadingScreen:_loadAssets()
-    local iteration = 0
-    for asset, _ in pairs(self._preloadedAssets) do
-        iteration += 1
-        task.spawn(function()
+    for i, asset in pairs(self._preloadedAssets) do
+        self._maid:AddTask(task.spawn(function()
             ContentProvider:PreloadAsync({asset})
             self._loadedAssets += 1
-            self._preloadedAssets[asset] = nil
-        end)
-        if iteration % 256 == 0 then -- Wait every 256 iterations
+        end))
+        if i % 256 == 0 then -- Wait every 256 iterations
             task.wait()
         end
     end
 end
 
-function LoadingScreen:_gatherAssets()
-    self._preloadedAssets = {}
-    local services = {
-        workspace;
-        game:GetService("ReplicatedStorage");
-        game:GetService("StarterPack");
-        StarterGui;
-    }
-
-    for _, service in ipairs(services) do
-        for _, asset in ipairs(service:GetDescendants()) do
-            self:_handleAssetAdded(asset)
-        end
-        self._maid:AddTask(service.DescendantAdded:Connect(function(asset) -- Load any assets replicated late
-            self:_handleAssetAdded(asset)
-        end))
-    end
-end
-
-function LoadingScreen:_handleAssetAdded(obj)
-    self._totalAssets += 1
-    self._preloadedAssets[obj] = true
-end
-
 function LoadingScreen:_setupGui()
     -- Clone loading screen
     self._gui = GuiTemplateProvider:Get("LoadingScreenTemplate")
+
+    self._maid:AddTask(task.spawn(function()
+        for _, guiObject in ipairs(self._gui:GetDescendants()) do
+            ContentProvider:PreloadAsync({guiObject})
+        end
+    end))
+
     self._mainFrame = self._gui.MainFrame
 
     -- Define all important gui objects for easier use
@@ -178,7 +169,10 @@ end
 
 function LoadingScreen:_updateLoadingBar()
     local percentLoaded = (self._loadedAssets/self._totalAssets)
-    percentLoaded = percentLoaded ~= percentLoaded and 0 or percentLoaded -- Guaranteeing that percentLoaded will never be "nan" so we dont display a wack number
+    percentLoaded = percentLoaded ~= percentLoaded and 0 or math.clamp(percentLoaded, 0, 1) -- Guaranteeing that percentLoaded will never be "nan" so we dont display a wack number
+    if percentLoaded == 1 then
+        self:_showMap()
+    end
     self._loadingBar.Size = UDim2.fromScale(percentLoaded, 1)
     self._percentLoadedLabel.Text = self._percentLoadedText:format(100 * percentLoaded)
 end

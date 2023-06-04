@@ -12,13 +12,14 @@ local DefaultData = require("DefaultData")
 local Network = require("Network")
 local ItemRewardConstants = require("ItemRewardConstants")
 local SpecialRewards = require("SpecialRewards")
+local TableUtils = require("TableUtils")
 
 -- ProfileService (data storage)
 local ProfileService = require("ProfileService")
 local PROFILE_KEY_FORMAT = "USER_%d"
 
 local ProfileStore = ProfileService.GetProfileStore(
-	"UserData_TEST_1",
+	"UserData_TEST_6",
 	DefaultData
 )
 
@@ -58,15 +59,6 @@ local DAY = HOUR * 24
 local WEEK = DAY * 7
 local MONTH = DAY * 30
 
---[[ type SpecialReward {
-    Weapons = {[itemKey] = str}
-    Armor = {[itemKey] = str}
-    Pets = {[itemKey] = str}
-
-    Money = int
-    XP = int
-}]]
-
 function UserData:FindPlayer(userId)
     for _, player in ipairs(Players:GetPlayers()) do
         if player.UserId == userId then
@@ -85,7 +77,7 @@ function UserData:GiveSpecialReward(userId, rewardName)
 		local reward = assert(SpecialRewards[rewardName], string.format("%s is not a valid special reward.", rewardName))
 
         local keyTable = {}
-		for _, itemType in ipairs({"Weapons", "Armors", "Pets"}) do
+		for _, itemType in ipairs({"Weapons", "Armors", "Pets", "Helmets", "Abilities"}) do
             local countTable = reward[itemType] or {}
             local tableCopy = {}
             for itemKey, count in pairs(countTable) do
@@ -107,11 +99,11 @@ function UserData:GiveSpecialReward(userId, rewardName)
 
 		-- Award money
 		if reward.Money then
-			self:AwardCurrency("Money", reward.Money)
+			self:AwardCurrency(userId, "Money", reward.Money)
 		end
 		-- Award XP
 		if reward.XP then
-			self:AwardCurrency("XP", reward.XP)
+			self:AwardCurrency(userId, "XP", reward.XP)
 		end
 
 		print(string.format("Gave user %d special reward %s.", userId, rewardName))
@@ -130,7 +122,9 @@ end
 local secureOwnedItemTypeKeys = {
     Weapons = true;
     Armors = true;
+    Helmets = true;
     Pets = true;
+    Abilities = true;
 }
 function UserData:AwardItem(userId, itemType, itemKey, amount)
     -- Strict arg validating here as we dont want to corrupt data
@@ -202,9 +196,24 @@ function UserData:GetProfile(userId: number)
 	return profile
 end
 
+local secureEquippedItemMap = {
+    Weapon = "Weapons";
+    Armor = "Armors";
+    Helmet = "Helmets";
+    Pet = "Pets";
+    Ability = "Abilities";
+}
+local iEquippedMap = TableUtils.swapArrange(secureEquippedItemMap)
+
 -- Handle validating user owned items
 function UserData:HasItem(userId, itemType, itemKey)
-    assert(secureOwnedItemTypeKeys[itemType], "Invalid itemType")
+    -- Auto translate key (ex: "Weapon" is provided instead of "Weapon")
+    local iKey = secureEquippedItemMap[itemType]
+    if iKey then
+        itemType = iKey
+    end
+
+    assert(secureOwnedItemTypeKeys[itemType] or iEquippedMap[itemType], "Invalid itemType")
     assert(ItemConstants[itemType][itemKey], "Invalid itemKey")
 	local profile = UserData:GetProfile(userId)
 
@@ -212,42 +221,28 @@ function UserData:HasItem(userId, itemType, itemKey)
 end
 
 -- Handle equipping item requests
-local secureEquippedItemMap = {
-    Weapon = "Weapons";
-    Armor = "Armor";
-    Pet = "Pets";
-}
 function UserData:UpdateEquipped(userId, itemType, itemKey)
     local constantKey = assert(secureEquippedItemMap[itemType])
-    assert(ItemConstants[constantKey][itemKey])
+    assert(itemKey and ItemConstants[constantKey][itemKey] or not itemKey)
 
 	local profile = UserData:GetProfile(userId)
 	profile.Data.EquippedItems[itemType] = itemKey
-
-    local player = Players:GetPlayerByUserId(userId)
-    if player and player.Character then
-        local character = player.Character
-
-        if itemType == "Armor" then
-            player:SetAttribute("ArmorSet", itemKey)
-            local armorData = ItemConstants.Armor[itemKey]
-
-            if armorData.Health then
-                character.Humanoid.MaxHealth = math.floor(100 * armorData.Health)
-                character.Humanoid.Health = character.Humanoid.MaxHealth
-            end
-        end
-    else
-        warn(("[UserData] - Equipped %s successfully updated for player %i, player is not in-game.")
-            :format(itemType, userId))
-    end
 end
+
+local secureCurrencies = {
+    Money = true;
+    XP = true;
+}
 
 -- Gives a player currency (As a reward, will avoid taking currency)
 
 function UserData:AwardCurrency(userId: number, currencyType: string, amount: number)
 	local profile = self:WaitForProfile(userId)
 	assert(profile, "Data is not loaded.")
+
+    if not secureCurrencies[currencyType] then
+        return
+    end
 
 	-- If we're not giving money, do not do anything to the player's data
 	if amount <= 0 then
@@ -261,7 +256,13 @@ function UserData:AwardCurrency(userId: number, currencyType: string, amount: nu
 	end
 
 	-- Add the awarded currency
-	data[currencyType] += amount
+    local newCurrency = data[currencyType] + amount
+	data[currencyType] = newCurrency
+
+    local player = Players:GetPlayerByUserId(userId)
+    if player then
+        player:SetAttribute(currencyType, newCurrency)
+    end
 end
 -- Checks if a user has enough currency (e.g. for a transaction)
 function UserData:HasCurrency(userId: number, currencyType: string, amount: number)
@@ -302,7 +303,13 @@ function UserData:TakeCurrency(userId: number, currencyType: string, amount: num
 	assert(self:HasCurrency(userId, currencyType, amount), string.format("Player does not have enough of the currency %s.", currencyType))
 
 	-- Take the awarded currency
-	data[currencyType] -= amount
+    local newCurrency = data[currencyType] - amount
+	data[currencyType] = newCurrency
+
+    local player = Players:GetPlayerByUserId(userId)
+    if player then
+        player:SetAttribute(currencyType, newCurrency)
+    end
 end
 
 -- When a player joins set up their profile automatically
@@ -358,6 +365,8 @@ loggedIn.Event:Connect(function(player: Player)
 
 	-- Update the user's last login date
 	data.LastLogin = os.time()
+    data.PlayCount += 1
+
     UserData.LoggedIn:Fire(player, profile)
 end)
 

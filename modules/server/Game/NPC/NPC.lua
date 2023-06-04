@@ -25,6 +25,7 @@ local VoicelineService = require("VoicelineService")
 local UserData = require("UserData")
 local EffectPlayerService = require("EffectPlayerService")
 local CleaverTossAttack = require("CleaverTossAttack")
+local PlayerDamageService = require("PlayerDamageService")
 
 local DEBUG_ENABLED = false -- Setting this to true will show debug ray parts, and display the NPC's FOV
 
@@ -295,7 +296,6 @@ function NPC.new(obj)
     end
 
     self._maid:AddTask(self._humanoid.Died:Connect(function()
-        -- TODO: Play death effect
         EffectPlayerService:PlayCustom("EnemyDeathEffect", "new", self._humanoidRootPart.Position)
         self.Died:Fire()
         self._obj:Destroy()
@@ -339,13 +339,10 @@ function NPC:_handleHit(raycastResult)
         end
         self._cachedHits[humanoid] = true
 
-        -- TODO: Swap to PlayerDamageService.lua
-        local damage = math.random(self._settings.MinDamage, self._settings.MaxDamage)
-        if not humanoid:GetAttribute("Invincible") then
-            humanoid:TakeDamage(damage)
-        end
-
         local character = humanoid.Parent
+        local damage = math.random(self._settings.MinDamage, self._settings.MaxDamage)
+        PlayerDamageService:DamageCharacter(character, damage)
+
         local player = Players[character.Name]
         if player and humanoid.Health <= 0 then
             self.KilledPlayer:Fire(player)

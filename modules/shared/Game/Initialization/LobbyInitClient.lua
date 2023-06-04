@@ -7,10 +7,15 @@ local require = require(game:GetService("ReplicatedStorage"):WaitForChild("Compl
 local LobbyInitClient = {}
 
 function LobbyInitClient:Init()
+    require("ContentHelper"):Init()
+    require("IntroductionSceneClient"):Init()
     require("LoadingScreen"):Init()
 
-    require("BlockRenderer"):Init()
-    require("PortalRenderer"):Init()
+    require("PartyServiceClient"):Init()
+    require("InviteClient"):Init()
+    -- require("BlockRenderer"):Init()
+    -- require("PortalRenderer"):Init()
+    require("ClientZones"):Init()
 end
 
 return LobbyInitClient

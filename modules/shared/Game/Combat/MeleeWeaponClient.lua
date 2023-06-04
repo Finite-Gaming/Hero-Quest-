@@ -16,6 +16,7 @@ local Hitscan = require("Hitscan")
 local ClientClassBinders = require("ClientClassBinders")
 local HumanoidUtils = require("HumanoidUtils")
 local AttackBase = require("AttackBase")
+local HumanoidLockerService = require("HumanoidLockerService")
 
 local ANIMATIONS = ReplicatedStorage:WaitForChild("Animations"):WaitForChild("Weapon")
 local GENERIC_ANIMATIONS = ANIMATIONS:WaitForChild("Generic")
@@ -130,23 +131,7 @@ function MeleeWeaponClient:_handleEquipped()
 end
 
 function MeleeWeaponClient:_lockHumanoid(humanoid)
-    if self._humanoidLocker then
-        local lockedHumanoid = self._humanoidLocker:GetObject()
-        if lockedHumanoid == humanoid then
-            return
-        end
-
-        ClientClassBinders.HumanoidLocker:Unbind(lockedHumanoid)
-        self._humanoidLocker = nil
-    end
-
-    if humanoid then
-        self._humanoidLocker = ClientClassBinders.HumanoidLocker:BindAsync(humanoid)
-        self._maid.Unlocked = self._humanoidLocker.Unlocked:Connect(function()
-            self._humanoidLocker = nil
-            self._maid.Unlocked = nil
-        end)
-    end
+    HumanoidLockerService:LockHumanoid(humanoid)
 end
 
 function MeleeWeaponClient:_handleUnequipped()

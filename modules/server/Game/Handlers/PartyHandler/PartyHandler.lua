@@ -14,7 +14,7 @@ local TeleportService = game:GetService("TeleportService")
 
 local PartyHandlerConstants = require("PartyHandlerConstants")
 -- List of all dungeon information
-local DUNGEONS = require("DungeonEntries")
+local DUNGEONS = require("DungeonData")
 
 -- Configuration
 local partyExpirationTime = PartyHandlerConstants.PARTY_EXPIRATION_TIME -- Specifies how many seconds a party will last for

@@ -6,9 +6,9 @@ local HttpService = game:GetService("HttpService")
 local require = require(game:GetService("ReplicatedStorage"):WaitForChild("Compliance"))
 
 local BaseObject = require("BaseObject")
-local FlamethrowerConstants = require("FlamethrowerConstants")
-local DamageFeedback = require("DamageFeedback")
+local FlamethrowerConstants = require("FlamethrowerConstants")  
 local HumanoidUtils = require("HumanoidUtils")
+local PlayerDamageService = require("PlayerDamageService")
 
 local RunService = game:GetService("RunService")
 
@@ -76,8 +76,7 @@ function Flamethrower:Fire()
                 self._immuneTracker[humanoid] = hitUpdate
 
                 local damage = math.random(MIN_DAMAGE, MAX_DAMAGE)
-                humanoid:TakeDamage(damage)
-                DamageFeedback:SendFeedback(humanoid, damage)
+                PlayerDamageService:DamageCharacter(humanoid.Parent, damage)
             end
         end
     end)

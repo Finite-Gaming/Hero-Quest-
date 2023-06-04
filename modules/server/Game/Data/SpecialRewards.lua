@@ -8,9 +8,17 @@ return {
 		Armors = {
 			BasicArmor = 1;
 		};
+        Helmets = {
+            BasicHelmet = 1;
+        };
 		Pets = {
 			StarterPet = 1;
+            OctopusPet = 1; -- will be removed pre-alpha
 		};
+
+        Abilities = { -- may need to be removed pre-alpha? not sure
+            LightAbility = 1;
+        };
 	};
 	-- Alpha tester gear
 	ItCameFromTheDeep = {
@@ -20,13 +28,18 @@ return {
 		Armors = {
 			AlphaArmor = 1;
 		};
+        Helmets = {
+            AlphaHelmet = 1;
+        };
 	};
     -- Warden drops
     WardenBoss = {
         RewardMultiple = true;
         PromptReward = true;
 
-        Weapons = {
+        Money = 100000;
+        XP = 100000;
+        Weapons = { -- these are for testing and need to be removed pre-alpha
             BasicSword = 1;
         };
         Pets = {

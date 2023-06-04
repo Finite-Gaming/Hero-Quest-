@@ -1,4 +1,4 @@
---- Viewport frame wrapper with spin implementation
+--- Does cool things
 -- @classmod ViewportFrame
 -- @author frick
 
@@ -14,7 +14,7 @@ local ViewportFrame = setmetatable({}, BaseObject)
 ViewportFrame.__index = ViewportFrame
 
 function ViewportFrame.new(model, doNotClone)
-    local self = setmetatable(BaseObject.new(doNotClone and model or model:Clone()), ViewportFrame)
+    local self = setmetatable(BaseObject.new(doNotClone and model or ModelUtils.createDisplayClone(model)), ViewportFrame)
 
     self._viewportFrame = self._maid:AddTask(Instance.new("ViewportFrame"))
 	self._camera = Instance.new("Camera")
@@ -23,7 +23,9 @@ function ViewportFrame.new(model, doNotClone)
 
 	self._modelCFrame = CFrame.identity
 
-    ModelUtils.createBasePart(self._obj)
+    if doNotClone then
+        ModelUtils.createBasePart(self._obj)
+    end
 	self._obj:PivotTo(self._modelCFrame)
 	self._obj.Parent = self._viewportFrame
 
@@ -42,6 +44,8 @@ function ViewportFrame.new(model, doNotClone)
         self._viewportModel:GetFitDistance(self._modelCFrame.Position)
     )
 	self._camera.CFrame = self._modelCFrame * self._distanceOffset
+	self._spinStep = math.rad(-20)
+	self._angle = self._spinStep
 
     return self
 end
@@ -56,11 +60,14 @@ function ViewportFrame:SetDistanceOffset(distance)
 end
 
 function ViewportFrame:EnableSpin()
-    self._spinStep = math.rad(-20)
-	self._angle = self._spinStep
-
 	self._maid:AddTask(RunService.RenderStepped:Connect(function(dt)
-		self:_update(dt)
+		self:_updateSpin(dt)
+	end))
+end
+
+function ViewportFrame:EnableFitSpin()
+	self._maid:AddTask(RunService.RenderStepped:Connect(function(dt)
+		self:_updateFitSpin(dt)
 	end))
 end
 
@@ -68,13 +75,23 @@ function ViewportFrame:GetViewportFrame()
     return self._viewportFrame
 end
 
+function ViewportFrame:SetMinFitAngle(angle)
+	self._viewportModel:Calibrate()
+	self._camera.CFrame = self._viewportModel:GetMinimumFitCFrame(CFrame.fromOrientation(self._spinStep, math.rad(angle), 0))
+end
+
 function ViewportFrame:SetParent(parent)
 	self._viewportFrame.Parent = parent
 end
 
-function ViewportFrame:_update(dt)
+function ViewportFrame:_updateSpin(dt)
     self._angle += self._spinStep * dt
     self._camera.CFrame = self._modelCFrame * CFrame.fromOrientation(self._spinStep, self._angle, 0) * self._distanceOffset
+end
+
+function ViewportFrame:_updateFitSpin(dt)
+	self._angle += self._spinStep * dt
+	self._camera.CFrame = self._viewportModel:GetMinimumFitCFrame(CFrame.fromOrientation(self._spinStep, self._angle, 0))
 end
 
 return ViewportFrame

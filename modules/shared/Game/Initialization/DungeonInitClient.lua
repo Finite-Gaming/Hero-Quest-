@@ -7,6 +7,7 @@ local require = require(game:GetService("ReplicatedStorage"):WaitForChild("Compl
 local DungeonInitClient = {}
 
 function DungeonInitClient:Init()
+    require("NPCOverlapParams"):Init()
     require("DoorOpenerClient"):Init()
     require("CleaverTossHandler"):Init()
 end

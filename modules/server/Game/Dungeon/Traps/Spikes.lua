@@ -8,6 +8,7 @@ local BaseObject = require("BaseObject")
 local SpikesConstants = require("SpikesConstants")
 local DebugVisualizer = require("DebugVisualizer")
 local HumanoidUtils = require("HumanoidUtils")
+local PlayerDamageService = require("PlayerDamageService")
 
 local DAMAGE_COOLDOWN = 0.5
 
@@ -67,17 +68,7 @@ function Spikes.new(obj)
 end
 
 function Spikes:_damageHumanoid(humanoid)
-    local damageTick = os.clock()
-    local oldTime = self._damageTimes[humanoid]
-
-    if oldTime then
-        if damageTick - oldTime < DAMAGE_COOLDOWN then
-            return
-        end
-    end
-
-    self._damageTimes[humanoid] = damageTick
-    humanoid:TakeDamage(35)
+    PlayerDamageService:DamageCharacter(humanoid.Parent, 30, DAMAGE_COOLDOWN)
 end
 
 function Spikes:_setState(bool)

@@ -14,11 +14,12 @@ function AnimationTrack.new(animationOrId, humanoid)
         animation.AnimationId = animationOrId
     end
 
-    if not humanoid:IsDescendantOf(workspace) then
+    if not humanoid:IsDescendantOf(game) then
+        print(humanoid:GetFullName())
         local currentThread = coroutine.running()
 
         local old; old = humanoid.Parent:GetPropertyChangedSignal("Parent"):Connect(function()
-            if humanoid:IsDescendantOf(workspace) then
+            if humanoid:IsDescendantOf(game) then
                 old:Disconnect()
                 coroutine.resume(currentThread, humanoid:LoadAnimation(animation))
             end

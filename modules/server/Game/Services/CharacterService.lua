@@ -5,37 +5,30 @@
 local require = require(game:GetService("ReplicatedStorage"):WaitForChild("Compliance"))
 
 local Players = game:GetService("Players")
-local CollectionService = game:GetService("CollectionService")
 
 local Network = require("Network")
 local CharacterServiceConstants = require("CharacterServiceConstants")
 local GameManager = require("GameManager")
 local UserData = require("UserData")
 local ProgressionHelper = require("ProgressionHelper")
+local ServerClassBinders = require("ServerClassBinders")
+local ArmorHandler = require("ArmorHandler")
+local PetHandler = require("PetHandler")
+local WeaponHandler = require("WeaponHandler")
 
 local CharacterService = {}
 
 -- Initialize remote function
 function CharacterService:Init()
-    local dungeonTag = workspace:GetAttribute("DungeonTag")
-
     self._loadedPlayers = {}
     self._playerLoaded = Instance.new("BindableEvent")
-
-    UserData.LoggedIn:Connect(function(player, profile)
-        ProgressionHelper:HandlePlayerLoggedIn(player, profile)
-
-        local playedDict = profile.Data.DungeonsPlayed
-        if playedDict[dungeonTag] then
-            playedDict[dungeonTag] += 1
-        else
-            playedDict[dungeonTag] = 1
-        end
-    end)
 
     Players.PlayerAdded:Connect(function(player)
         self:_handlePlayerAdded(player)
     end)
+    for _, player in ipairs(Players:GetPlayers()) do
+        task.spawn(self._handlePlayerAdded, self, player)
+    end
 
     if GameManager:IsLobby() then
         Network:GetRemoteFunction(CharacterServiceConstants.DONE_LOADING_REMOTE_FUNCTION_NAME).OnServerInvoke = function(player)
@@ -46,6 +39,10 @@ function CharacterService:Init()
             end
         end
     end
+
+    UserData.LoggedIn:Connect(function(player, profile)
+        ProgressionHelper:HandlePlayerLoggedIn(player, profile)
+    end)
 end
 
 -- Binds connections to player
@@ -67,10 +64,11 @@ function CharacterService:_handleCharacterAdded(player, character)
     if not character then
         return
     end
+    ArmorHandler:UpdateArmor(player, character)
+    PetHandler:UpdatePet(player, character)
+    WeaponHandler:UpdateWeapon(player, character)
 
-    CollectionService:AddTag(character, "PlayerInfoDisplay")
-    CollectionService:AddTag(character, "ShopInterface")
-    CollectionService:AddTag(character, "MainButtonsInterface")
+    ServerClassBinders.Character:Bind(character)
 
     local humanoid = character:FindFirstChildWhichIsA("Humanoid")
     while not humanoid do

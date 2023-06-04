@@ -13,6 +13,7 @@ local MeleeWeaponConstants = require("MeleeWeaponConstants")
 local HumanoidUtils = require("HumanoidUtils")
 local DamageFeedback = require("DamageFeedback")
 local ServerClassBinders = require("ServerClassBinders")
+local PlayerDamageService = require("PlayerDamageService")
 
 local ANIMATIONS = ReplicatedStorage:WaitForChild("Animations"):WaitForChild("Weapon")
 local GENERIC_ANIMATIONS = ANIMATIONS:WaitForChild("Generic")
@@ -97,16 +98,7 @@ function MeleeWeapon:_handleHit(instance, position)
         self._cachedHits[humanoid] = true
         local damage = self:_getDamage()
 
-        if not humanoid:GetAttribute("Invincible") then
-            local damageTracker = ServerClassBinders.DamageTracker:Get(humanoid)
-            if not damageTracker then
-                humanoid:TakeDamage(damage)
-            else
-                damageTracker:Damage(damage, self._player)
-            end
-        end
-
-        DamageFeedback:SendFeedback(humanoid, damage, position)
+        PlayerDamageService:DamageCharacter(humanoid.Parent, damage)
     end
 end
 

@@ -18,11 +18,19 @@ function RoomManager:Init()
     self._totalRooms = #workspace.Rooms:GetChildren()
     self._currentRoom = 0
 
-    self._progressionData = DungeonData.ProgressionVoicelines
+    self._progressionData = DungeonData[self._dungeonTag].ProgressionVoicelines
 
     self:_setupRoom("1")
 
-    task.delay(3, function() -- replace this with a party joined yield later on
+    task.spawn(function()
+        local startTime = os.clock()
+        ProgressionHelper:WaitForAllPlayers()
+        local waitTime = task.wait(3)
+        local timeDiff = os.clock() - startTime
+
+        print(("[RoomManager] - Waited for all players to join, elapsed time: %f (Yield time: %f)")
+            :format(timeDiff, timeDiff - waitTime))
+
         if ProgressionHelper:IsNewPlayers() then
             ProgressionHelper:PlaySoundForScenario("Spawned", function()
                 self:ProgressRoom()
@@ -36,6 +44,10 @@ function RoomManager:Init()
     NPCSpawner.RoomCleared:Connect(function()
         self:ProgressRoom()
     end)
+end
+
+function RoomManager:WaitForAllPlayers()
+
 end
 
 function RoomManager:GetActiveRoom()

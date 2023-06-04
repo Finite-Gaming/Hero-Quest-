@@ -9,8 +9,7 @@ local GuiTemplateProvider = require("GuiTemplateProvider")
 local ItemRewardConstants = require("ItemRewardConstants")
 local ItemConstants = require("ItemConstants")
 local Network = require("Network")
-
-local DEFAULT_THUMBNAIL = "rbxassetid://12017700691"
+local PopulateItemFrame = require("PopulateItemFrame")
 
 local ItemRewardClient = {}
 
@@ -26,7 +25,12 @@ function ItemRewardClient:Init()
 
     self._gui.Parent = self._screenGui
 
-    Network:GetRemoteEvent(ItemRewardConstants.REMOTE_EVENT_NAME).OnClientEvent:Connect(function(keyTable)
+    Network:GetRemoteEvent(ItemRewardConstants.REMOTE_EVENT_NAME).OnClientEvent:Connect(function(keyTable, message)
+        if message then
+            self._gui.Header.TextLabel.Text = message
+        else
+            self._gui.Header.TextLabel.Text = "Rewards"
+        end
         self:_populate(keyTable)
         self._screenGui.Enabled = true
     end)
@@ -49,7 +53,7 @@ function ItemRewardClient:_populate(itemDict)
             local itemFrame = GuiTemplateProvider:Get("RewardGridItemTemplate")
             itemFrame.NameLabel.Text = itemData.DisplayName or itemKey
             itemFrame.CountLabel.Text = ("x%i"):format(count)
-            itemFrame.IconLabel.Image = itemData.Thumbnail or DEFAULT_THUMBNAIL
+            PopulateItemFrame(itemFrame.ImageLabel.IconLabel, itemCategory, itemKey)
             itemFrame.LayoutOrder = count
 
             itemFrame.Parent = self._gui.ScrollingFrame

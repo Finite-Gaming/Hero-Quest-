@@ -6,6 +6,8 @@ local require = require(game:GetService("ReplicatedStorage"):WaitForChild("Compl
 
 local DebugVisualizer = require("DebugVisualizer")
 
+local CollectionService = game:GetService("CollectionService")
+
 local ModelUtils = {}
 
 function ModelUtils.getParts(model)
@@ -45,6 +47,33 @@ function ModelUtils.createBasePart(model)
 	model.PrimaryPart = basePart
 
 	return basePart
+end
+
+function ModelUtils.createDisplayClone(model)
+    model = model:Clone()
+    if model:IsA("Tool") then
+        local vModel = Instance.new("Model")
+        vModel.Name = model.Name
+        for _, child in ipairs(model:GetChildren()) do
+            child.Parent = vModel
+        end
+
+        model:Destroy()
+        model = vModel
+    end
+
+    ModelUtils.createBasePart(model)
+
+    for _, tag in ipairs(CollectionService:GetTags(model)) do
+        CollectionService:RemoveTag(model, tag)
+    end
+    for _, obj in ipairs(model:GetDescendants()) do
+        if not obj:IsA("BasePart") and not obj:IsA("Model") and not obj:IsA("SurfaceAppearance") then
+            obj:Destroy()
+        end
+    end
+
+    return model
 end
 
 return ModelUtils

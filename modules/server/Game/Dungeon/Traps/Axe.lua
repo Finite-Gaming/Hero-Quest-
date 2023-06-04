@@ -9,6 +9,7 @@ local RunService = game:GetService("RunService")
 local BaseObject = require("BaseObject")
 local AxeConstants = require("AxeConstants")
 local DamageFeedback = require("DamageFeedback")
+local PlayerDamageService = require("PlayerDamageService")
 
 local TARGET_ANGLE = 20
 local SPEED = 2
@@ -61,16 +62,7 @@ function Axe:_playSound()
 end
 
 function Axe:_handleHit(player)
-    local character = player.Character
-    if not character then
-        return
-    end
-
-    local humanoid = character:FindFirstChildOfClass("Humanoid")
-    if humanoid then
-        humanoid:TakeDamage(DAMAGE)
-        DamageFeedback:SendFeedback(humanoid, DAMAGE)
-    end
+    PlayerDamageService:DamagePlayer(player, DAMAGE)
 end
 
 return Axe

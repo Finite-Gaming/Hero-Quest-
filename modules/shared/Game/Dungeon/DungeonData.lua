@@ -1,8 +1,15 @@
--- small dictionary with progression voicelines for each dungeon
+-- dictionary with data/progression voicelines for each dungeon
 
 local DATA = {
     a_easy = {
+        Floors = 1; -- TODO
         MaxLevel = 15; -- placeholder?
+        PlayTime = 20; -- TODO
+        PlayIndex = 1;
+
+        DisplayName = "Haunted Castle";
+		PlaceId = 9678777751;
+		MaxPlayers = 50;
 
         ProgressionVoicelines = { -- keep in mind, these are sound effects, not sound groups
             Spawned = {
@@ -26,4 +33,4 @@ local DATA = {
     };
 }
 
-return DATA[workspace:GetAttribute("DungeonTag")]
+return DATA
