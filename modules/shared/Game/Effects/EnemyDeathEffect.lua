@@ -5,6 +5,7 @@
 local require = require(game:GetService("ReplicatedStorage"):WaitForChild("Compliance"))
 
 local BaseObject = require("BaseObject")
+local LensFlareEffect = require("LensFlareEffect")
 
 local TweenService = game:GetService("TweenService")
 
@@ -31,6 +32,7 @@ function EnemyDeathEffect.new(pos)
     self._maid:AddTask(outTween.Completed:Connect(function()
         self:Destroy()
     end))
+	LensFlareEffect.new(pos)
 
 	part.Parent = workspace.Terrain
     outTween:Play()

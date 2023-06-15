@@ -6,6 +6,10 @@ local require = require(game:GetService("ReplicatedStorage"):WaitForChild("Compl
 
 local EffectPlayerService = require("EffectPlayerService")
 local UserData = require("UserData")
+local NPCSpawner = require("NPCSpawner")
+local TotalEnemiesKilled = require("TotalEnemiesKilled")
+
+local TeleportService = game:GetService("TeleportService")
 
 local Players = game:GetService("Players")
 
@@ -29,11 +33,16 @@ function DungeonDefeatedTasks:Run()
         end
     end
 
+    TotalEnemiesKilled:AddEnemies(NPCSpawner:GetDeadEnemies())
+
     task.delay(4, function()
-        -- play animation, wait for few secs, teleport
         for _, player in ipairs(Players:GetPlayers()) do
             EffectPlayerService:PlayCustom("PlayerTeleportAnimation", "exit", player)
         end
+
+        task.delay(3, function()
+            TeleportService:TeleportAsync(9323803256, Players:GetPlayers())
+        end)
     end)
 end
 

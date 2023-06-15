@@ -24,7 +24,11 @@ function PlayerAbilityUI.new(character)
 end
 
 function PlayerAbilityUI:UpdateThumbnail(thumbnailId)
-    self._gui.MainFrame.AbilityIcon.Image = thumbnailId
+    self._gui.MainFrame.ImageButton.Image = thumbnailId
+end
+
+function PlayerAbilityUI:GetButton()
+    return self._gui.MainFrame.ImageButton
 end
 
 return PlayerAbilityUI

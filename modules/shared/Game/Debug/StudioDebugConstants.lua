@@ -1,3 +1,4 @@
 return {
-    SimulateRecurringPlayer = true;
+    SimulateNewPlayer = false;
+    DungeonSpawnRoom = "7";
 }

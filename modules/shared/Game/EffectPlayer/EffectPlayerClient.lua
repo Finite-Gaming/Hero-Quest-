@@ -83,6 +83,8 @@ function EffectPlayerClient:PlayEffect(effectName, position, color)
             effect:Destroy()
         end)
     end
+
+    return effect
 end
 
 function EffectPlayerClient:PlayCustom(effectName, param, ...)

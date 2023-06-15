@@ -15,6 +15,15 @@ local ServerClassBinders = require("ServerClassBinders")
 local ArmorHandler = require("ArmorHandler")
 local PetHandler = require("PetHandler")
 local WeaponHandler = require("WeaponHandler")
+local EffectPlayerService = require("EffectPlayerService")
+local UserDataService = require("UserDataService")
+local PlayerLevelCalculator = require("PlayerLevelCalculator")
+local CharacterOverlapParams = require("CharacterOverlapParams")
+
+local RoomManager
+if GameManager:IsDungeon() then
+    RoomManager = require("RoomManager")
+end
 
 local CharacterService = {}
 
@@ -51,11 +60,29 @@ function CharacterService:_handlePlayerAdded(player)
         while not self._loadedPlayers[player] do
             self._playerLoaded.Event:Wait()
         end
+    elseif GameManager:IsDungeon() then
+        self:SpawnPlayer(player)
     end
 
 	self:_handleCharacterAdded(player, player.Character)
 	player.CharacterAdded:Connect(function(character)
         self:_handleCharacterAdded(player, character)
+    end)
+
+    -- TODO: make player binder for this lol
+    self._xpValue = UserDataService:GetExperience(player)
+    self._level = PlayerLevelCalculator:GetLevelFromXP(self._xpValue)
+    player:GetAttributeChangedSignal("XP"):Connect(function()
+        self._xpValue = player:GetAttribute("XP")
+        local oldLevel = self._level
+        self._level = PlayerLevelCalculator:GetLevelFromXP(self._xpValue)
+
+        local character = player.Character
+        if character then
+            if self._level > oldLevel then
+                EffectPlayerService:PlayCustom("LevelUpEffect", "new", character)
+            end
+        end
     end)
 end
 
@@ -64,6 +91,7 @@ function CharacterService:_handleCharacterAdded(player, character)
     if not character then
         return
     end
+    character:SetAttribute("SpawnTime", os.clock())
     ArmorHandler:UpdateArmor(player, character)
     PetHandler:UpdatePet(player, character)
     WeaponHandler:UpdateWeapon(player, character)
@@ -78,8 +106,18 @@ function CharacterService:_handleCharacterAdded(player, character)
 
     humanoid.Died:Connect(function()
         task.wait(Players.RespawnTime)
-        player:LoadCharacter()
+        self:SpawnPlayer(player)
     end)
+end
+
+function CharacterService:SpawnPlayer(player)
+    player:LoadCharacter()
+
+    if GameManager:IsDungeon() then
+        local character = player.Character
+        character:PivotTo(RoomManager:GetSpawn().CFrame * CFrame.new(0, 2, 0))
+        CharacterOverlapParams:Add(character)
+    end
 end
 
 return CharacterService

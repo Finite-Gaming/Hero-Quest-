@@ -70,7 +70,7 @@ function Boulder:_handleHit(player)
         return
     end
 
-    PlayerDamageService:DamagePlayer(player, 128, 0.5, self._boulder, 2048, self._diameter + 12)
+    PlayerDamageService:DamagePlayer(player, 128, 0.5, self._boulder, 256, self._diameter + 12)
     SoundPlayerService:PlaySound("Body_Impact_1")
 end
 

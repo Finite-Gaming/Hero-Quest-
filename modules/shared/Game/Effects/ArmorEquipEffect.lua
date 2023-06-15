@@ -59,13 +59,23 @@ function ArmorEquipEffect.new(character, armorName, endTime)
     local limbsFinished = 0
     local armorSet = assert(setModel):Clone()
     self._maid:AddTask(task.spawn(function()
-        for _, armorPiece in ipairs(armorSet:GetChildren()) do
+        local armorPieces = armorSet:GetChildren()
+        for _, armorPiece in ipairs(armorPieces) do
             local limb = character:FindFirstChild(armorPiece.Name)
             if not limb then
                 continue
             end
-
             totalLimbs += 1
+
+            local shouldSkip = false
+            for _, replicatedArmor in ipairs(limb:GetChildren()) do
+                if replicatedArmor:GetAttribute("SetKey") == endTime then
+                    shouldSkip = true
+                end
+            end
+            if shouldSkip then
+                continue
+            end
 
             local signalKey = self:_animateLimb(limb, armorPiece, endTime)
             local addedKey = ("Added_%s"):format(HttpService:GenerateGUID(false))
@@ -82,7 +92,7 @@ function ArmorEquipEffect.new(character, armorName, endTime)
                 end
             end)
 
-            task.wait(0.2)
+            task.wait(math.clamp((endTime - workspace:GetServerTimeNow() - 1)/#armorPieces, 0, math.huge))
         end
     end))
 

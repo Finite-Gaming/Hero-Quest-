@@ -27,7 +27,7 @@ function CleaverTossHandler:Init()
     end)
 end
 
-function CleaverTossHandler:_handleRequest(npc, curvePoints, serverTime)
+function CleaverTossHandler:_handleRequest(npc, throwTime, curvePoints, serverTime)
     local localTime = workspace:GetServerTimeNow()
     local latency = localTime - serverTime
 
@@ -67,7 +67,7 @@ function CleaverTossHandler:_handleRequest(npc, curvePoints, serverTime)
     local function update()
         local updateTime = workspace:GetServerTimeNow()
         local timeDiff = updateTime - serverTime
-        local delta = math.clamp(timeDiff, 0, CleaverTossConstants.THROW_TIME)/CleaverTossConstants.THROW_TIME
+        local delta = math.clamp(timeDiff, 0, throwTime)/throwTime
 
         local curvePoint = curve:GetPoint(delta)
         weapon.CFrame = CFrame.lookAt(curvePoint, curve:GetPoint(math.clamp(delta + 0.1, 0, 1)))
@@ -81,11 +81,13 @@ function CleaverTossHandler:_handleRequest(npc, curvePoints, serverTime)
 
     maid:AddTask(function()
         hitscan:Stop()
+        weapon.Trail.Enabled = false
     end)
     maid:AddTask(weapon:GetPropertyChangedSignal("Anchored"):Connect(function()
         maid:Destroy() -- contingency
     end))
     maid:AddTask(RunService.Heartbeat:Connect(update))
+    weapon.Trail.Enabled = true
     hitscan:Start()
 end
 

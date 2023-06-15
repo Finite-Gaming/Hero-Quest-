@@ -36,9 +36,9 @@ return ClassBinderProvider.new(function(self)
     self:AddClassBinder(ClassBinder.new("MeleeWeapon", require("MeleeWeaponClient")))
 
     -- Abilities
-    self:AddClassBinder(ClassBinder.new("PlayerAbility", require("PlayerAbilityClient")))
-
     self:AddClassBinder(ClassBinder.new("BeamAbility", require("BeamAbilityClient")))
+
+    self:AddClassBinder(ClassBinder.new("PlayerAbility", require("PlayerAbilityClient")))
 
     -- Traps
     self:AddClassBinder(ClassBinder.new("Spikes", require("SpikesClient")))

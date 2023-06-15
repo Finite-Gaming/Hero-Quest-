@@ -20,6 +20,8 @@ function NPCSpawner:Init()
     PhysicsService:RegisterCollisionGroup("NPC")
     PhysicsService:CollisionGroupSetCollidable("NPC", "NPC", false)
 
+    self._totalDeadEnemies = 0
+
     self._raycastParams = RaycastParams.new()
     self._raycastParams.FilterType = Enum.RaycastFilterType.Whitelist
     self._raycaster = Raycaster.new(self._raycastParams)
@@ -48,6 +50,10 @@ function NPCSpawner:Init()
 
         self._pointDict[npcZone] = points
     end
+end
+
+function NPCSpawner:GetDeadEnemies()
+    return self._totalDeadEnemies
 end
 
 function NPCSpawner:SetupZone(npcZoneName)
@@ -83,6 +89,7 @@ function NPCSpawner:SetupZone(npcZoneName)
                 table.remove(enemies, table.find(enemies, npc))
 
                 if deadEnemies == totalEnemies then
+                    self._totalDeadEnemies += totalEnemies
                     zoneMaid:Destroy()
                     self.RoomCleared:Fire()
                 end

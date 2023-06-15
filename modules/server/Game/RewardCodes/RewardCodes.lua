@@ -20,4 +20,16 @@ return {
     devcode5 = {
         SpecialReward = "WardenBoss";
     };
+    devcode6 = {
+        SpecialReward = "WardenBoss";
+    };
+    devcode7 = {
+        SpecialReward = "WardenBoss";
+    };
+    devcode8 = {
+        SpecialReward = "WardenBoss";
+    };
+    devcode9 = {
+        SpecialReward = "WardenBoss";
+    };
 }

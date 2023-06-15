@@ -82,9 +82,7 @@ function BeamAbility:_activate(state)
             local partPos = part.Position
 
             local raycastResult = self._raycaster:CastTo(rootPos, partPos)
-            print(raycastResult)
             if raycastResult and raycastResult.Instance:IsDescendantOf(part.Parent) then
-                print(true)
                 PlayerDamageService:DamageHitPart(part, self._baseStats.Damage, self._baseStats.DamageCooldown, self._player)
                 break
             end

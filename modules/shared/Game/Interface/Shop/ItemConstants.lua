@@ -6,7 +6,7 @@
 
 [itemKey] = {
     LayoutOrder = int: what order the item will be in the shop
-    NotBuyable = bool (optional): should the item be excluded from the shop
+    Buyable = bool (optional): should the item be included in the shop
     DisplayName = string: the name that the item will be displayed as in-game
     Thumbnail = string (optional): thumbnail the item will be displayed with in-game
     ProductId = int: the developer product the player will be purchasing when buying this item
@@ -26,9 +26,7 @@ return {
     Weapons = {
         -- Basic/default sword
         BasicSword = {
-            NotBuyable = true;
             DisplayName = "Basic Sword";
-            Speed = 0.5;
             Rarity = "Common";
         };
 
@@ -36,8 +34,6 @@ return {
         AlphaHammer = {
             LayoutOrder = 1;
             DisplayName = "Steampunk Hammer";
-            Health = 5;
-            Speed = 0.5;
             Rarity = "Legendary";
 
             Cursed = true;
@@ -45,10 +41,10 @@ return {
     };
     Pets = {
         StarterPet = {
-            NotBuyable = true;
             DisplayName = "Starter Pet";
         };
         OctopusPet = {
+            Buyable = true;
             LayoutOrder = 1;
             DisplayName = "Octy";
             ProductId = 1354616460;
@@ -62,10 +58,9 @@ return {
     Armors = {
         -- Basic/default armor
         BasicArmor = {
-            NotBuyable = true;
             DisplayName = "Basic Armor";
-            Health = 1.2;
-            Speed = 0.5;
+            Health = 40;
+            Speed = -1;
             Rarity = "Common";
 
             ViewportData = {
@@ -77,8 +72,8 @@ return {
         AlphaArmor = {
             LayoutOrder = 1;
             DisplayName = "Steampunk Armor";
-            Health = 2;
-            Speed = 0.5;
+            Health = 50;
+            Speed = -1;
             Rarity = "Legendary";
 
             ViewportData = {
@@ -88,10 +83,9 @@ return {
     };
     Helmets = {
         BasicHelmet = {
-            NotBuyable = true;
             DisplayName = "Basic Helmet";
-            Health = 1.2;
-            Speed = 0.5;
+            Health = 20;
+            Speed = -0.5;
             Rarity = "Common";
 
             ViewportData = {
@@ -102,8 +96,8 @@ return {
         AlphaHelmet = {
             LayoutOrder = 1;
             DisplayName = "Steampunk Helmet";
-            Health = 2;
-            Speed = 0.5;
+            Health = 30;
+            Speed = -0.5;
             Rarity = "Legendary";
 
             ViewportData = {
@@ -113,7 +107,6 @@ return {
     };
     Abilities = {
         LightAbility = {
-            NotBuyable = true;
             DisplayName = "Light Ability";
             Thumbnail = "rbxassetid://13196001375";
             Rarity = "Common";

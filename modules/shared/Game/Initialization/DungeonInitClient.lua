@@ -7,7 +7,27 @@ local require = require(game:GetService("ReplicatedStorage"):WaitForChild("Compl
 local DungeonInitClient = {}
 
 function DungeonInitClient:Init()
+    require("UserDataClient"):Init()
+
     require("NPCOverlapParams"):Init()
+    require("SoundModifier"):Init()
+    require("VoicelineService"):Init()
+    require("SoundPlayer"):Init()
+    require("DamageFeedbackClient"):Init()
+
+    require("GuiTemplateProvider"):Init()
+    require("ClientTemplateProvider"):Init()
+    require("TotalEnemiesKilledClient"):Init()
+    require("ClientClassBinders"):Init()
+
+    require("ItemRewardClient"):Init()
+    require("AvatarCaptionService"):Init()
+    require("EffectPlayerClient"):Init()
+    require("ApplyImpulseClient"):Init()
+    require("BottomCaptionService"):Init()
+    require("NotificationService"):Init()
+
+    require("DungeonTimerClient"):Init()
     require("DoorOpenerClient"):Init()
     require("CleaverTossHandler"):Init()
 end

@@ -26,6 +26,9 @@ local UserData = require("UserData")
 local EffectPlayerService = require("EffectPlayerService")
 local CleaverTossAttack = require("CleaverTossAttack")
 local PlayerDamageService = require("PlayerDamageService")
+local RandomRange = require("RandomRange")
+local CharacterOverlapParams = require("CharacterOverlapParams")
+local CameraShakeService = require("CameraShakeService")
 
 local DEBUG_ENABLED = false -- Setting this to true will show debug ray parts, and display the NPC's FOV
 
@@ -46,6 +49,27 @@ local ENEMY_SETTINGS = {
                 Class = GenericAttack;
                 Range = 5; -- The distance the npc will attack at
                 WeaponName = "Mace";
+                SignalAttack = true;
+            };
+        };
+    };
+    Orc_Large = {
+        WalkSpeed = 8;
+        RunSpeed = 16;
+        PursueAngle = 160;
+        PursueRange = 64;
+        AttackRefresh = 0.15;
+        PathingCooldown = 2;
+
+        MinDamage = 14;
+        MaxDamage = 30;
+
+        Attacks = {
+            {
+                Class = GenericAttack;
+                Range = 7;
+                WeaponName = "Mace";
+                SignalAttack = true;
             };
         };
     };
@@ -65,6 +89,7 @@ local ENEMY_SETTINGS = {
                 Class = GenericAttack;
                 Range = 9;
                 WeaponName = "Axe";
+                SignalAttack = true;
             };
             {
                 Class = StompAttack;
@@ -79,6 +104,7 @@ local ENEMY_SETTINGS = {
                 Class = CleaverTossAttack;
                 Range = 76;
                 WeaponName = "Axe";
+                SignalAttack = true;
             };
         };
 
@@ -159,7 +185,8 @@ function NPC.new(obj)
     for _, attackData in ipairs(self._settings.Attacks) do
         local attackClass = self._maid:AddTask(attackData.Class.new(self))
         if attackData.WeaponName then
-            local hitscan = Hitscan.new(self._obj[attackData.WeaponName], self._raycaster)
+            local weapon = self._obj[attackData.WeaponName]
+            local hitscan = Hitscan.new(weapon, self._raycaster)
             self._maid:AddTask(hitscan.Hit:Connect(function(raycastResult)
                 if attackClass.HandleHit then
                     attackClass:HandleHit(raycastResult)
@@ -167,17 +194,51 @@ function NPC.new(obj)
                     self:_handleHit(raycastResult)
                 end
             end))
+            local trail = weapon:FindFirstChild("Trail")
             self._maid:AddTask(attackClass.StartHitscan:Connect(function()
                 hitscan:Start()
+                if trail then
+                    trail.Enabled = true
+                end
             end))
             self._maid:AddTask(attackClass.EndHitscan:Connect(function()
                 hitscan:Stop()
                 table.clear(self._cachedHits)
+                if trail then
+                    trail.Enabled = false
+                end
             end))
+            self._maid:AddTask(attackClass.ShakeCamera:Connect(function(intensity)
+                local maxDist = 16
+                local weaponPos = weapon.Position
+                warn(#workspace:GetPartBoundsInRadius(weaponPos, maxDist, CharacterOverlapParams:Get()))
+                for _, rootPart in ipairs(workspace:GetPartBoundsInRadius(
+                    weaponPos,
+                    maxDist,
+                    CharacterOverlapParams:Get()
+                )) do
+                    local player = Players:GetPlayerFromCharacter(rootPart.Parent)
+                    if not player then
+                        print("no player LOL!")
+                        continue
+                    end
+                    local distance = (rootPart.Position - weaponPos).Magnitude
+                    local shakeStrength = intensity * (1 - ((math.clamp(distance, 0.1, maxDist)/maxDist))) * 2
+                    warn(distance)
+                    warn(shakeStrength)
+                    CameraShakeService:Shake(player, shakeStrength)
+                end
+            end))
+            if attackData.SignalAttack then
+                self._maid:AddTask(attackClass.AttackPlayed:Connect(function()
+                    EffectPlayerService:PlayCustom("LensFlareEffect", "new", weapon, 0.7, Color3.new(1, 0, 0), 0.4)
+                end))
+            end
         end
 
         table.insert(self._attacks, {Class = attackClass, Data = attackData})
     end
+    self._attackRandomRange = RandomRange.new(1, #self._attacks)
     self:_pickRandomAttack()
 
     self.DamageTracker = ServerClassBinders.DamageTracker:BindAsync(self._humanoid)
@@ -302,6 +363,9 @@ function NPC.new(obj)
     end))
 
     self._maid:AddTask(self.Died:Connect(function()
+        for player, damage in pairs(self.DamageTracker:GetDamageMap()) do
+            UserData:AwardCurrency(player.UserId, "XP", math.round(damage * 2.4))
+        end
         if self._settings.SpecialReward then
             for _, player in ipairs(Players:GetPlayers()) do
                 UserData:GiveSpecialReward(player.UserId, self._settings.SpecialReward)
@@ -328,7 +392,7 @@ function NPC:GetState()
 end
 
 function NPC:_pickRandomAttack()
-    self._nextAttack = self._attacks[math.random(1, #self._attacks)]
+    self._nextAttack = self._attacks[self._attackRandomRange:Get()]
 end
 
 function NPC:_handleHit(raycastResult)
@@ -524,6 +588,9 @@ function NPC:_startPatrol()
             if rayResult and rayResult.Instance:IsDescendantOf(character) then
                 self:_stopPatrol()
                 self.StateChanged:Fire("Chase")
+                if self._pursuing then
+                    return
+                end
                 self:_startPursuit(character)
                 return
             end

@@ -6,13 +6,9 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local require = require(ReplicatedStorage:WaitForChild("Compliance"))
 
-local Players = game:GetService("Players")
-
 local BaseObject = require("BaseObject")
 local MeleeWeaponConstants = require("MeleeWeaponConstants")
 local HumanoidUtils = require("HumanoidUtils")
-local DamageFeedback = require("DamageFeedback")
-local ServerClassBinders = require("ServerClassBinders")
 local PlayerDamageService = require("PlayerDamageService")
 
 local ANIMATIONS = ReplicatedStorage:WaitForChild("Animations"):WaitForChild("Weapon")
@@ -92,13 +88,18 @@ function MeleeWeapon:_handleHit(instance, position)
     -- TODO: Validate hit
     local humanoid = HumanoidUtils.getHumanoid(instance)
     if humanoid then
-        if self._cachedHits[humanoid] then
+        local totalHits = self._cachedHits[humanoid]
+        if totalHits == 2 then
             return
         end
-        self._cachedHits[humanoid] = true
+        if totalHits then
+            self._cachedHits[humanoid] += 1
+        else
+            self._cachedHits[humanoid] = 1
+        end
         local damage = self:_getDamage()
 
-        PlayerDamageService:DamageCharacter(humanoid.Parent, damage)
+        PlayerDamageService:DamageCharacter(humanoid.Parent, damage, nil, self._player)
     end
 end
 

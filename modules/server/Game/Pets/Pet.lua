@@ -21,6 +21,12 @@ function Pet.new(obj)
         part:SetNetworkOwner(self._ownerValue.Value)
     end
 
+    self._maid:AddTask(self._ownerValue.Value.Character.AncestryChanged:Connect(function(_, newParent)
+        if newParent == nil then
+            self:Destroy()
+        end
+    end))
+
     self._animationFolder = self._obj:FindFirstChild("Animations")
     if self._animationFolder then
         self._animationController = self._obj:FindFirstChild("AnimationController")

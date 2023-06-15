@@ -9,6 +9,11 @@ local RaycastList = require("RaycastList")
 local NPCOverlapParams = {}
 
 function NPCOverlapParams:Init()
+    if self._initialized then
+        return
+    end
+    self._initialized = true
+
     self._overlapParams = OverlapParams.new()
     self._overlapParams.FilterType = Enum.RaycastFilterType.Include
 
@@ -20,6 +25,10 @@ function NPCOverlapParams:Init()
 end
 
 function NPCOverlapParams:Get()
+    if not self._initialized then
+        self:Init()
+    end
+
     return self._raycastList:Get()
 end
 

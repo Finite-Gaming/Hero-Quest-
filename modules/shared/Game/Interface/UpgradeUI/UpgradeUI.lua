@@ -12,27 +12,10 @@ local UpgradePriceUtil = require("UpgradePriceUtil")
 local NotificationService = require("NotificationService")
 local VoicelineService = require("VoicelineService")
 local SoundPlayer = require("SoundPlayer")
+local PlayerLevelCalculator = require("PlayerLevelCalculator")
 local ExitButtonMixin = require("ExitButtonMixin")
 
-local ALIGNMENT_CODES = { -- i know these are confusing just ignore it
-    Health = 1;
-    Damage = 3;
-    MagicDamage = 8;
-
-    AllEqual = 12;
-}
-local CODE_MAP = {
-    [1] = "Tank";
-    [3] = "Warrior";
-    [8] = "Wizard";
-
-    [4] = "Juggernaut"; -- health + damage
-    [9] = "Hefty Wizard"; -- health + magic damage
-    [11] = "Battle Wizard";-- damage + magic damage
-    [12] = "Living Legend"; -- all
-}
-
--- TODO: cap level (wait for level calculation math)
+-- TODO: cap level?
 local UpgradeUI = setmetatable({}, BaseObject)
 UpgradeUI.__index = UpgradeUI
 
@@ -66,40 +49,16 @@ end
 
 function UpgradeUI:_updateLabels()
     local upgradeData = UserDataClient:GetUpgradeData()
-    local highestLevel = 0
 
     for upgradeName, upgradeLevel in pairs(upgradeData) do
-        if upgradeLevel > highestLevel then
-            highestLevel = upgradeLevel
-        end
-
         local container = self._containers[upgradeName]
 
         container.BuyButton.TextLabel.Text = ("$%i"):format(math.round(UpgradePriceUtil:GetPriceFromLevel(upgradeLevel)))
         container.LevelLabel.TextLabel.Text = ("LVL: %i"):format(upgradeLevel)
     end
 
-    local debugTable = {}
-    local compoundCode = 0
-    for upgradeName, upgradeLevel in pairs(upgradeData) do
-        if upgradeLevel == highestLevel then
-            compoundCode += ALIGNMENT_CODES[upgradeName]
-            table.insert(debugTable, upgradeName)
-        end
-    end
-
     -- dont forget to update level here
-    local classAlignment = nil
-    if highestLevel == 1 then
-        classAlignment = "Newbie"
-    else
-        local code = CODE_MAP[compoundCode]
-        if not code then
-            warn("[UpgradeUI] - No code for combination:", debugTable)
-            code = "Error"
-        end
-        classAlignment = code
-    end
+    local classAlignment = PlayerLevelCalculator:GetClassAlignment(upgradeData)
     self._gui.MainFrame.RedBox.TextLabel.Text = ("Maximum Level: 128\nCurrent Class Alignment: %s")
         :format(classAlignment)
 end

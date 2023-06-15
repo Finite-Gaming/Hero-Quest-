@@ -4,7 +4,7 @@ local DATA = {
     a_easy = {
         Floors = 1; -- TODO
         MaxLevel = 15; -- placeholder?
-        PlayTime = 20; -- TODO
+        PlayTime = 20;
         PlayIndex = 1;
 
         DisplayName = "Haunted Castle";

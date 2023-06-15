@@ -17,6 +17,7 @@ local Network = require("Network")
 local CharacterServiceConstants = require("CharacterServiceConstants")
 local LoadingScreenConstants = require("LoadingScreenConstants")
 local ContentHelper = require("ContentHelper")
+local TotalEnemiesKilledClient = require("TotalEnemiesKilledClient")
 
 local CAMERA_ROT_SPEED = 10
 local STAGE_NAMES = LoadingScreenConstants.STAGE_NAMES
@@ -180,11 +181,15 @@ end
 function LoadingScreen:_updateStageName()
     local updateTick = os.clock()
     if updateTick - self._lastStageUpdate > 3 then
-        self._stageText = STAGE_NAMES[self._randomObject:NextInteger(1, #self._stageText)]
+        self._stageText = STAGE_NAMES[self._randomObject:NextInteger(1, #STAGE_NAMES)]
         self._lastStageUpdate = updateTick
     end
 
-    self._statusText.Text = self._stageText:format(("."):rep(((updateTick * 2) % 3) + 1))
+    local displayText = self._stageText
+    if self._stageText == "EPIC PLACEHOLDER!" then
+        displayText = ("%i goobers have fallen%s"):format(TotalEnemiesKilledClient:GetTotal(), "%s")
+    end
+    self._statusText.Text = displayText:format(("."):rep(((updateTick * 2) % 3) + 1))
 end
 
 return LoadingScreen

@@ -21,12 +21,21 @@ return function(imageFrame, itemCategory, itemKey)
         oldRarityBackground:Destroy()
     end
 
-    if not itemCategory or not itemKey then
+    if itemCategory == "Money" then
+        imageFrame.Image = "rbxassetid://13686073572"
+        return
+    elseif itemCategory == "XP" then
+        imageFrame.Image = "rbxassetid://13689883746"
+        return
+    elseif not itemCategory or not itemKey then
         imageFrame.Image = ""
         return
     end
 
     local itemData = ItemConstants[itemCategory][itemKey]
+    if not itemData then
+        return
+    end
     local viewportData = itemData.ViewportData
 
     local viewportModel = viewportData and viewportData.Model or nil

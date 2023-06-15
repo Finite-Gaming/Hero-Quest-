@@ -58,7 +58,7 @@
 	
 --]]
 
-
+local require = require(game:GetService("ReplicatedStorage"):WaitForChild("Compliance"))
 
 local CameraShaker = {}
 CameraShaker.__index = CameraShaker
@@ -73,7 +73,7 @@ local ANG = CFrame.Angles
 local RAD = math.rad
 local v3Zero = V3()
 
-local CameraShakeInstance = require(script.CameraShakeInstance)
+local CameraShakeInstance = require("CameraShakeInstance")
 local CameraShakeState = CameraShakeInstance.CameraShakeState
 
 local defaultPosInfluence = V3(0.15, 0.15, 0.15)
@@ -81,7 +81,7 @@ local defaultRotInfluence = V3(1, 1, 1)
 
 
 CameraShaker.CameraShakeInstance = CameraShakeInstance
-CameraShaker.Presets = require(script.CameraShakePresets)
+CameraShaker.Presets = require("CameraShakePresets")
 
 
 function CameraShaker.new(renderPriority, callback)

@@ -16,6 +16,7 @@ local WeaponService = require("WeaponService")
 local RewardCodes = require("RewardCodes")
 local UpgradePriceUtil = require("UpgradePriceUtil")
 local ProgressionHelper = require("ProgressionHelper")
+local PlayerLevelCalculator = require("PlayerLevelCalculator")
 
 local secureGetTypes = {
     ["Armors"] = true,
@@ -228,6 +229,8 @@ function UserDataService:Init()
                 UserData:TakeCurrency(player.UserId, "Money", upgradePrice)
 
                 data.UpgradeData[upgradeName] += 1
+                local classAlignment = PlayerLevelCalculator:GetClassAlignment(data.UpgradeData)
+                player:SetAttribute("ClassAlignment", classAlignment)
 
                 return true, "Success!", data.UpgradeData[upgradeName]
             else

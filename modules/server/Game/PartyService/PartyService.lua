@@ -8,6 +8,7 @@ local Network = require("Network")
 local PartyServiceConstants = require("PartyServiceConstants")
 local UserDataService = require("UserDataService")
 local DungeonData = require("DungeonData")
+local FunctionUtils = require("FunctionUtils")
 
 local TeleportService = game:GetService("TeleportService")
 local Players = game:GetService("Players")
@@ -24,46 +25,12 @@ local TELEPORT_DATA_FORMAT = "TELEPORT_DATA_%s"
 
 local INVITE_COOLDOWN = 3
 
-local function rCall(map, method, ...)
-    local args = {...}
-    return task.spawn(function()
-        local tries = 0
-        local success, err = pcall(map[method], map, unpack(args))
-
-        while not success and tries < 5 do
-            warn(("[rCall Error] - %s"):format(err))
-            success, err = pcall(map[method], map, unpack(args))
-            tries += 1
-            task.wait(0.5)
-        end
-    end)
-end
-
-local function rCallAsync(map, method, ...)
-    local tries = 0
-    local success, err = pcall(map[method], map, ...)
-
-    while not success and tries < 5 do
-        warn(("[rCallAsync Error] - %s"):format(err))
-        success, err = pcall(map[method], map, ...)
-        tries += 1
-        task.wait(0.5)
-    end
-
-    if not success then
-        warn("bruh dang")
-        return
-    end
-
-    return err
-end
-
 local PartyService = {}
 
 function PartyService:Init()
-    self._playerMap = MemoryStoreService:GetSortedMap("ActivePlayers_TEST_6")
-    self._partyMap = MemoryStoreService:GetSortedMap("ActiveParties_TEST_6")
-    self._teleportDataMap = MemoryStoreService:GetSortedMap("TeleportData_TEST_4")
+    self._playerMap = MemoryStoreService:GetSortedMap("ActivePlayers_TEST_10")
+    self._partyMap = MemoryStoreService:GetSortedMap("ActiveParties_TEST_10")
+    self._teleportDataMap = MemoryStoreService:GetSortedMap("TeleportData_TEST_10")
 
     self._remoteEvent = Network:GetRemoteEvent(PartyServiceConstants.REMOTE_EVENT_NAME)
     self._remoteFunction = Network:GetRemoteFunction(PartyServiceConstants.REMOTE_FUNCTION_NAME)
@@ -74,7 +41,7 @@ function PartyService:Init()
 
     self._inviteCooldownMap = {}
 
-    rCallAsync(MessagingService, "SubscribeAsync", SERVER_SUBSCRIPTION_FORMAT:format(game.JobId), function(data)
+    FunctionUtils.rCallAPIAsync(MessagingService, "SubscribeAsync", SERVER_SUBSCRIPTION_FORMAT:format(game.JobId), function(data)
         print(("[PartyService] - Inbound message from MessagingService Latency: %f | Action: %s | Full table contents:")
             :format(data.Sent - os.time(), data.Data.Action))
         for key, value in pairs(data.Data) do
@@ -116,10 +83,13 @@ function PartyService:Init()
         elseif action == "UpdateList" then
             self:_fireClientByUserId(data.ToPlayer, "UpdateList", data.PlayerList)
         elseif action == "Teleport" then
+            local player = Players:GetPlayerByUserId(data.ToPlayer)
+            self._remoteEvent:FireClient(player, "Notification", "Starting game, please wait...", "Information", -1)
+
             local teleportOptions = Instance.new("TeleportOptions")
             teleportOptions.ReservedServerAccessCode = data.AccessCode
             TeleportService:TeleportAsync(data.DungeonId,
-                {Players:GetPlayerByUserId(data.ToPlayer)},
+                {player},
             teleportOptions)
         end
     end)
@@ -144,7 +114,7 @@ function PartyService:Init()
             print("Data: ", data)
         end
 
-        local playerData = rCallAsync(self._playerMap, "GetAsync", USER_ID_FORMAT:format(player.UserId))
+        local playerData = FunctionUtils.rCallAPIAsync(self._playerMap, "GetAsync", USER_ID_FORMAT:format(player.UserId))
         if not playerData then
             warn("[PartyService] - Failed to get playerData")
             self._remoteEvent:FireClient(player, "Notification", "Failed to get playerData", "Error")
@@ -159,13 +129,13 @@ function PartyService:Init()
             end
             local partyGUID = HttpService:GenerateGUID(false)
 
-            rCall(self._partyMap, "SetAsync", PARTY_ID_FORMAT:format(partyGUID), {
+            FunctionUtils.rCallAPI(self._partyMap, "SetAsync", PARTY_ID_FORMAT:format(partyGUID), {
                 ServerId = game.JobId;
                 Owner = player.UserId;
                 Players = {player.UserId};
             }, SEVEN_DAYS_IN_SECONDS)
             warn("[PartyService] - Updating playerData...")
-            rCall(self._playerMap, "UpdateAsync", USER_ID_FORMAT:format(player.UserId), function(playerData)
+            FunctionUtils.rCallAPI(self._playerMap, "UpdateAsync", USER_ID_FORMAT:format(player.UserId), function(playerData)
                 playerData.PartyGUID = partyGUID
                 return playerData
             end, SEVEN_DAYS_IN_SECONDS)
@@ -184,13 +154,13 @@ function PartyService:Init()
                 return
             end
 
-            local activePlayer = rCallAsync(self._playerMap, "GetAsync", USER_ID_FORMAT:format(data.ToPlayer))
+            local activePlayer = FunctionUtils.rCallAPIAsync(self._playerMap, "GetAsync", USER_ID_FORMAT:format(data.ToPlayer))
             if not activePlayer then
                 self._remoteEvent:FireClient(player, "Notification", "Player not in-game", "Error")
                 return
             end
 
-            local partyData = rCallAsync(self._partyMap, "GetAsync", PARTY_ID_FORMAT:format(partyGUID))
+            local partyData = FunctionUtils.rCallAPIAsync(self._partyMap, "GetAsync", PARTY_ID_FORMAT:format(partyGUID))
             if not partyData then
                 warn(("[PartyService] - No party data for party %q | Member requester: %s")
                     :format(partyGUID, player.Name))
@@ -226,7 +196,7 @@ function PartyService:Init()
             end
 
             if playerData.PartyGUID then
-                local oldPartyData = rCallAsync(self._partyMap, "GetAsync", PARTY_ID_FORMAT:format(playerData.PartyGUID))
+                local oldPartyData = FunctionUtils.rCallAPIAsync(self._partyMap, "GetAsync", PARTY_ID_FORMAT:format(playerData.PartyGUID))
                 if not oldPartyData then
                     warn(("[PartyService] - Failed to get party data | Party GUID: %q")
                         :format(playerData.PartyGUID))
@@ -241,7 +211,7 @@ function PartyService:Init()
             end
 
             local partyGUID = activeTable.PartyGUID
-            local partyData = rCallAsync(self._partyMap, "GetAsync", PARTY_ID_FORMAT:format(partyGUID))
+            local partyData = FunctionUtils.rCallAPIAsync(self._partyMap, "GetAsync", PARTY_ID_FORMAT:format(partyGUID))
             if not partyData then
                 warn(("[PartyService] - Failed to get party data | Party GUID: %q")
                     :format(partyGUID))
@@ -251,12 +221,12 @@ function PartyService:Init()
             print("[PartyService] - Updating player list for party...")
             local playerList = partyData.Players
             table.insert(playerList, player.UserId)
-            rCall(self._partyMap, "UpdateAsync", PARTY_ID_FORMAT:format(partyGUID), function(partyData)
+            FunctionUtils.rCallAPI(self._partyMap, "UpdateAsync", PARTY_ID_FORMAT:format(partyGUID), function(partyData)
                 partyData.Players = playerList
                 return partyData
             end, SEVEN_DAYS_IN_SECONDS)
             print("[PartyService] - Party data updated, updating player data...")
-            rCall(self._playerMap, "UpdateAsync", USER_ID_FORMAT:format(player.UserId), function(playerData)
+            FunctionUtils.rCallAPI(self._playerMap, "UpdateAsync", USER_ID_FORMAT:format(player.UserId), function(playerData)
                 playerData.PartyGUID = partyGUID
                 return playerData
             end, SEVEN_DAYS_IN_SECONDS)
@@ -269,7 +239,7 @@ function PartyService:Init()
                     continue
                 end
                 task.spawn(function()
-                    local playerData = rCallAsync(self._playerMap, "GetAsync", USER_ID_FORMAT:format(userId))
+                    local playerData = FunctionUtils.rCallAPIAsync(self._playerMap, "GetAsync", USER_ID_FORMAT:format(userId))
                     if not playerData then
                         warn(("[PartyService] - RemoteEvent handle (AcceptInvite) failed, no player data for player %q")
                             :format(userId))
@@ -299,7 +269,7 @@ function PartyService:Init()
                 return
             end
 
-            local partyData = rCallAsync(self._partyMap, "GetAsync", PARTY_ID_FORMAT:format(partyGUID))
+            local partyData = FunctionUtils.rCallAPIAsync(self._partyMap, "GetAsync", PARTY_ID_FORMAT:format(partyGUID))
             if not partyData then
                 warn(("[PartyService] - Failed to get party data | Party GUID: %q")
                     :format(partyGUID))
@@ -331,10 +301,13 @@ function PartyService:Init()
 
             self._remoteEvent:FireClient(player, "Notification", "Starting game, please wait...", "Information", -1)
 
-            rCallAsync(self._teleportDataMap, "SetAsync",
+            FunctionUtils.rCallAPIAsync(self._teleportDataMap, "SetAsync",
                 TELEPORT_DATA_FORMAT:format(privateServerId), {
                     PlayerList = partyData.Players;
                 }, 5 * 60)
+
+            local playersToProcess = #partyData.Players
+            local playersProcessed = 1
 
             for _, userId in ipairs(partyData.Players) do
                 if userId == player.UserId then
@@ -342,7 +315,7 @@ function PartyService:Init()
                 end
 
                 task.spawn(function()
-                    local playerData = rCallAsync(self._playerMap, "GetAsync", USER_ID_FORMAT:format(userId))
+                    local playerData = FunctionUtils.rCallAPIAsync(self._playerMap, "GetAsync", USER_ID_FORMAT:format(userId))
                     if not playerData then
                         warn(("[PartyService] - (Teleport sequence) Failed to get player data for player %q")
                             :format(Players:GetNameFromUserIdAsync(userId)))
@@ -350,15 +323,10 @@ function PartyService:Init()
                     end
 
                     if playerData.ServerId == game.JobId then
-                        table.insert(playerList, Players:GetPlayerByUserId(userId))
+                        local player = Players:GetPlayerByUserId(userId)
+                        self._remoteEvent:FireClient(player, "Notification", "Starting game, please wait...", "Information", -1)
+                        table.insert(playerList, player)
                     else
-                        MessagingService:PublishAsync(SERVER_SUBSCRIPTION_FORMAT:format(playerData.ServerId), {
-                            Action = "Notification";
-                            ToPlayer = userId;
-                            Reason = "Starting game, please wait...";
-                            Lifetime = -1;
-                        })
-
                         MessagingService:PublishAsync(SERVER_SUBSCRIPTION_FORMAT:format(playerData.ServerId), {
                             Action = "Teleport";
                             ToPlayer = userId;
@@ -366,9 +334,14 @@ function PartyService:Init()
                             DungeonId = dungeonInfo.PlaceId;
                         })
                     end
+
+                    playersProcessed += 1
                 end)
             end
 
+            while playersToProcess ~= playersProcessed do
+                task.wait()
+            end
             local teleportOptions = Instance.new("TeleportOptions")
             teleportOptions.ReservedServerAccessCode = accessCode
             TeleportService:TeleportAsync(dungeonInfo.PlaceId, playerList, teleportOptions)
@@ -380,7 +353,7 @@ function PartyService:Init()
                 return
             end
 
-            local partyData = rCallAsync(self._partyMap, "GetAsync", PARTY_ID_FORMAT:format(partyGUID))
+            local partyData = FunctionUtils.rCallAPIAsync(self._partyMap, "GetAsync", PARTY_ID_FORMAT:format(partyGUID))
             if not partyData then
                 warn(("[PartyService] - Failed to get party data | Party GUID: %q")
                     :format(partyGUID))
@@ -407,7 +380,7 @@ function PartyService:Init()
     end)
 
     function self._remoteFunction:OnServerInvoke(player, action)
-        local playerData = rCallAsync(self._playerMap, "GetAsync", USER_ID_FORMAT:format(player.UserId))
+        local playerData = FunctionUtils.rCallAPIAsync(self._playerMap, "GetAsync", USER_ID_FORMAT:format(player.UserId))
         if not playerData then
             warn("[PartyService] - Failed to get playerData")
             self._remoteEvent:FireClient(player, "Notification", "Failed to get playerData", "Error")
@@ -416,7 +389,7 @@ function PartyService:Init()
 
         local partyData = nil
         if playerData.PartyGUID then
-            partyData = rCallAsync(self._partyMap, "GetAsync", PARTY_ID_FORMAT:format(playerData.PartyGUID))
+            partyData = FunctionUtils.rCallAPIAsync(self._partyMap, "GetAsync", PARTY_ID_FORMAT:format(playerData.PartyGUID))
         end
 
         if action == "IsPartyMember" then
@@ -458,7 +431,7 @@ end
 
 function PartyService:_addPlayer(player)
     print("[PartyService] - Added player to playerMap")
-    rCall(self._playerMap, "SetAsync",
+    FunctionUtils.rCallAPI(self._playerMap, "SetAsync",
         USER_ID_FORMAT:format(player.UserId), {
             ServerId = game.JobId;
             PartyGUID = nil;
@@ -467,7 +440,7 @@ function PartyService:_addPlayer(player)
 end
 
 function PartyService:_removePlayerFromParty(playerId)
-    local playerData = rCallAsync(self._playerMap, "GetAsync", USER_ID_FORMAT:format(playerId))
+    local playerData = FunctionUtils.rCallAPIAsync(self._playerMap, "GetAsync", USER_ID_FORMAT:format(playerId))
     if not playerData then
         warn("[PartyService] - No playerData")
         return false, "Internal error: No playerData"
@@ -484,7 +457,7 @@ function PartyService:_removePlayerFromParty(playerId)
         return false, "Internal error: No partyGUID"
     end
 
-    rCall(self._playerMap, "UpdateAsync", USER_ID_FORMAT:format(playerId), function(playerData)
+    FunctionUtils.rCallAPI(self._playerMap, "UpdateAsync", USER_ID_FORMAT:format(playerId), function(playerData)
         playerData.PartyGUID = nil
         return playerData
     end, SEVEN_DAYS_IN_SECONDS)
@@ -496,7 +469,7 @@ function PartyService:_removePlayerFromParty(playerId)
             PlayerList = {};
     })
 
-    local partyData = rCallAsync(self._partyMap, "GetAsync", PARTY_ID_FORMAT:format(partyGUID))
+    local partyData = FunctionUtils.rCallAPIAsync(self._partyMap, "GetAsync", PARTY_ID_FORMAT:format(partyGUID))
     if partyData then
         local playerList = partyData.Players
         table.remove(playerList, table.find(playerList, playerId))
@@ -507,7 +480,7 @@ function PartyService:_removePlayerFromParty(playerId)
             end
 
             task.spawn(function()
-                local playerData = rCallAsync(self._playerMap, "GetAsync", USER_ID_FORMAT:format(userId))
+                local playerData = FunctionUtils.rCallAPIAsync(self._playerMap, "GetAsync", USER_ID_FORMAT:format(userId))
                 if not playerData then
                     return
                 end
@@ -521,7 +494,7 @@ function PartyService:_removePlayerFromParty(playerId)
             end)
         end
 
-        rCall(self._partyMap, "UpdateAsync", PARTY_ID_FORMAT:format(partyGUID), function(data)
+        FunctionUtils.rCallAPI(self._partyMap, "UpdateAsync", PARTY_ID_FORMAT:format(partyGUID), function(data)
             data.Players = playerList
             return data
         end, SEVEN_DAYS_IN_SECONDS)
@@ -535,7 +508,7 @@ function PartyService:_removePlayerFromParty(playerId)
 end
 
 function PartyService:_removePlayer(player, doNotPurgeData)
-    local playerData = rCallAsync(self._playerMap, "GetAsync", USER_ID_FORMAT:format(player.UserId))
+    local playerData = FunctionUtils.rCallAPIAsync(self._playerMap, "GetAsync", USER_ID_FORMAT:format(player.UserId))
     if not playerData then
         warn("[PartyService] - Failed to remove player, no playerData")
         self._remoteEvent:FireClient(player, "Notification", "Failed to remove player, no playerData", "Error")
@@ -543,7 +516,7 @@ function PartyService:_removePlayer(player, doNotPurgeData)
     end
 
     if playerData.PartyGUID then
-        local oldPartyData = rCallAsync(self._partyMap, "GetAsync", PARTY_ID_FORMAT:format(playerData.PartyGUID))
+        local oldPartyData = FunctionUtils.rCallAPIAsync(self._partyMap, "GetAsync", PARTY_ID_FORMAT:format(playerData.PartyGUID))
         if not oldPartyData then
             warn(("[PartyService] - Failed to remove player, no party data | Party GUID: %q")
                 :format(playerData.PartyGUID))
@@ -558,7 +531,7 @@ function PartyService:_removePlayer(player, doNotPurgeData)
     end
 
     if not doNotPurgeData then
-        rCallAsync(self._playerMap, "RemoveAsync",
+        FunctionUtils.rCallAPIAsync(self._playerMap, "RemoveAsync",
             USER_ID_FORMAT:format(player.UserId)
         )
     end
@@ -567,7 +540,7 @@ function PartyService:_removePlayer(player, doNotPurgeData)
 end
 
 function PartyService:_disbandParty(player)
-    local playerData = rCallAsync(self._playerMap, "GetAsync", USER_ID_FORMAT:format(player.UserId))
+    local playerData = FunctionUtils.rCallAPIAsync(self._playerMap, "GetAsync", USER_ID_FORMAT:format(player.UserId))
     if not playerData then
         warn(("[PartyService] - Failed to disband party, no player data for player %q")
             :format(player.UserId))
@@ -581,7 +554,7 @@ function PartyService:_disbandParty(player)
         return
     end
 
-    local partyData = rCallAsync(self._partyMap, "GetAsync", PARTY_ID_FORMAT:format(partyGUID))
+    local partyData = FunctionUtils.rCallAPIAsync(self._partyMap, "GetAsync", PARTY_ID_FORMAT:format(partyGUID))
     if not partyData then
         warn(("[PartyService] - Failed to get party data | Party GUID: %q")
             :format(partyGUID))
@@ -593,12 +566,16 @@ function PartyService:_disbandParty(player)
 
     for _, userId in ipairs(partyData.Players) do
         task.spawn(function()
-            local playerData = rCallAsync(self._playerMap, "GetAsync", USER_ID_FORMAT:format(userId))
+            local playerData = FunctionUtils.rCallAPIAsync(self._playerMap, "GetAsync", USER_ID_FORMAT:format(userId))
             if not playerData then
                 return
             end
 
-            rCall(self._playerMap, "UpdateAsync", USER_ID_FORMAT:format(userId), function(playerData)
+            FunctionUtils.rCallAPI(self._playerMap, "UpdateAsync", USER_ID_FORMAT:format(userId), function(playerData)
+                if not playerData then
+                    return playerData
+                end
+
                 playerData.PartyGUID = nil
                 return playerData
             end, SEVEN_DAYS_IN_SECONDS)
@@ -614,7 +591,7 @@ function PartyService:_disbandParty(player)
         end)
     end
 
-    rCallAsync(self._partyMap, "RemoveAsync", PARTY_ID_FORMAT:format(partyGUID))
+    FunctionUtils.rCallAPIAsync(self._partyMap, "RemoveAsync", PARTY_ID_FORMAT:format(partyGUID))
 
     return true
 end

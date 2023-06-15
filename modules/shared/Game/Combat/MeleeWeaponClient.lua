@@ -16,6 +16,7 @@ local Hitscan = require("Hitscan")
 local ClientClassBinders = require("ClientClassBinders")
 local HumanoidUtils = require("HumanoidUtils")
 local AttackBase = require("AttackBase")
+local SoundPlayer = require("SoundPlayer")
 local HumanoidLockerService = require("HumanoidLockerService")
 
 local ANIMATIONS = ReplicatedStorage:WaitForChild("Animations"):WaitForChild("Weapon")
@@ -177,11 +178,19 @@ function MeleeWeaponClient:_handleHit(raycastResult)
         return
     end
 
+    local character = humanoid.Parent
+    local player = Players:FindFirstChild(character.Name)
+    if player and player.Character == character then
+        return
+    end
+
     if self._cachedHits[humanoid] then
         return
     end
     self._cachedHits[humanoid] = true
 
+    SoundPlayer:PlaySoundAtPart(raycastResult.Instance, "Armor_Hit_Deep")
+    SoundPlayer:PlaySoundAtPart(raycastResult.Instance, "Body_Hit_Deep")
     self:_lockHumanoid(humanoid)
     self._remoteEvent:FireServer("Hit", raycastResult.Instance, raycastResult.Position)
 end

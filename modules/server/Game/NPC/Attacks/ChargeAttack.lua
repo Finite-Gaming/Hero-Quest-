@@ -68,7 +68,14 @@ end
 
 function ChargeAttack:HandleHit(raycastResult)
     local simHitPos = self._npc._humanoidRootPart.Position
-    PlayerDamageService:DamageHitPart(raycastResult.Instance, self._damage, 0.5, Vector3.new(simHitPos.X, raycastResult.Instance.Position.Y, simHitPos.Z), 512, self._hitRadius)
+    PlayerDamageService:DamageHitPart(
+        raycastResult.Instance,
+        self._damage,
+        0.5,
+        Vector3.new(simHitPos.X, raycastResult.Instance.Position.Y, simHitPos.Z),
+        256,
+        self._hitRadius
+    )
 end
 
 function ChargeAttack:GetHitDebounce()

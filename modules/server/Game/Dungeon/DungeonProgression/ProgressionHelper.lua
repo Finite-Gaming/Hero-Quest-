@@ -9,6 +9,7 @@ local PlayerLevelCalculator = require("PlayerLevelCalculator")
 local SoundPlayer = require("SoundPlayer")
 local StudioDebugConstants = require("StudioDebugConstants")
 local GameManager = require("GameManager")
+local FunctionUtils = require("FunctionUtils")
 
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
@@ -18,32 +19,14 @@ local PLAYER_JOIN_TIMEOUT = 10
 
 local TELEPORT_DATA_FORMAT = "TELEPORT_DATA_%s" -- TODO: move this to a constants file to sync with PartyService
 
-local function rCallAsync(map, method, ...)
-    local tries = 0
-    local success, err = pcall(map[method], map, ...)
-
-    while not success and tries < 3 do
-        warn(("[ProgressionHelper - rCallAsync Error] - %s"):format(err))
-        success, err = pcall(map[method], map, ...)
-        tries += 1
-        task.wait(0.5)
-    end
-
-    if not success then
-        return
-    end
-
-    return err
-end
-
 local ProgressionHelper = {}
 
 function ProgressionHelper:Init()
     if GameManager:IsDungeon() then
         self._dungeonTag = workspace:GetAttribute("DungeonTag")
         -- TODO: maybe change this to a repeat async call?
-        self._teleportDataMap = MemoryStoreService:GetSortedMap("TeleportData_TEST_4")
-        self._teleportData = rCallAsync(self._teleportDataMap, "GetAsync",
+        self._teleportDataMap = MemoryStoreService:GetSortedMap("TeleportData_TEST_10")
+        self._teleportData = FunctionUtils.rCallAPIAsync(self._teleportDataMap, "GetAsync",
             TELEPORT_DATA_FORMAT:format(game.PrivateServerId))
 
         if not self._teleportData then
@@ -128,14 +111,14 @@ function ProgressionHelper:PlaySoundForScenario(scenario, ...)
 end
 
 function ProgressionHelper:IsNewPlayers()
-    if RunService:IsStudio() and StudioDebugConstants.SimulateRecurringPlayer then
-        return false
+    if RunService:IsStudio() and StudioDebugConstants.SimulateNewPlayer then
+        return true
     end
     return self._newPlayers
 end
 
 function ProgressionHelper:IsLevelMaxed()
-    if RunService:IsStudio() and StudioDebugConstants.SimulateRecurringPlayer then
+    if RunService:IsStudio() and StudioDebugConstants.SimulateNewPlayer then
         return false
     end
     return not self._newPlayers and self._levelMaxed

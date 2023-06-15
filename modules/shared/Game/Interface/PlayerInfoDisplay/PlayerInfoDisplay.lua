@@ -20,7 +20,6 @@ function PlayerInfoDisplay.new(character)
     local self = setmetatable(BaseObject.new(character), PlayerInfoDisplay)
 
     self._screenGui = self._maid:AddTask(ScreenGuiProvider:Get("PlayerInfoDisplay"))
-    self._screenGui.IgnoreGuiInset = true
     self._gui = GuiTemplateProvider:Get("PlayerInfoDisplayTemplate")
 
     self._userThumbnail = Players:GetUserThumbnailAsync(
@@ -37,6 +36,7 @@ function PlayerInfoDisplay.new(character)
 
     self._maid:AddTask(self._humanoid:GetPropertyChangedSignal("MaxHealth"):Connect(function()
         self._maxHealth = self._humanoid.MaxHealth
+        self:_updateSlider(self._healthBar, math.clamp(self._humanoid.Health, 0, self._maxHealth), self._maxHealth)
     end))
     self._maid:AddTask(self._humanoid:GetPropertyChangedSignal("Health"):Connect(function()
         self:_updateSlider(self._healthBar, math.clamp(self._humanoid.Health, 0, self._maxHealth), self._maxHealth)
@@ -46,19 +46,24 @@ function PlayerInfoDisplay.new(character)
     self._maid:AddTask(Players.LocalPlayer:GetAttributeChangedSignal("XP"):Connect(function()
         local xp = Players.LocalPlayer:GetAttribute("XP")
         self:_updatePortrait(xp)
-        self:_updateSlider(self._experienceBar, xp, 1000000)
+        local currentLevel = PlayerLevelCalculator:GetLevelFromXP(xp)
+        local levelBaseXP = PlayerLevelCalculator:GetXPFromLevel(currentLevel)
+        self:_updateSlider(self._experienceBar, xp, PlayerLevelCalculator:GetXPFromLevel(currentLevel + 1), levelBaseXP)
     end))
     task.spawn(function()
         local xp = UserDataClient:GetExperience()
         self:_updatePortrait(xp)
-        self:_updateSlider(self._experienceBar, xp, 1000000)
+        local currentLevel = PlayerLevelCalculator:GetLevelFromXP(xp)
+        local levelBaseXP = PlayerLevelCalculator:GetXPFromLevel(currentLevel)
+        self:_updateSlider(self._experienceBar, xp, PlayerLevelCalculator:GetXPFromLevel(currentLevel + 1), levelBaseXP)
     end)
 
+    self._moneyBar.AccentBar.Size = UDim2.fromScale(1, 1)
     self._maid:AddTask(Players.LocalPlayer:GetAttributeChangedSignal("Money"):Connect(function()
-        self:_updateSlider(self._moneyBar, Players.LocalPlayer:GetAttribute("Money"), 1000000)
+        self._moneyBar.Label.Text = math.round(Players.LocalPlayer:GetAttribute("Money"))
     end))
     task.spawn(function()
-        self:_updateSlider(self._moneyBar, UserDataClient:GetMoney(), 1000000)
+        self._moneyBar.Label.Text = math.round(UserDataClient:GetMoney())
     end)
 
     return self
@@ -84,12 +89,16 @@ function PlayerInfoDisplay:_setupGui()
     self._nameLabel.Text = Players.LocalPlayer.Name
 end
 
-function PlayerInfoDisplay:_updateSlider(slider, value, maxValue)
+function PlayerInfoDisplay:_updateSlider(slider, value, maxValue, offset)
     local percent = value/maxValue
+    local displayPercent = percent
+    if offset then
+        displayPercent = (value - offset)/(maxValue - offset)
+    end
     local displayText = ("%i/%i"):format(math.round(value), math.round(maxValue))
 
     slider.Label.Text = displayText
-    slider.AccentBar.Size = UDim2.fromScale(percent, 1)
+    slider.AccentBar.Size = UDim2.fromScale(displayPercent, 1)
 end
 
 return PlayerInfoDisplay

@@ -22,6 +22,7 @@ function CleaverTossAttack.new(npc)
     self._raycaster:Ignore(npc._obj)
 
     self._weapon = npc._obj.Axe
+    self._throwTime = 1
 
     self._remoteEvent = Network:GetRemoteEvent(CleaverTossConstants.REMOTE_EVENT_NAME)
     self._rigidConstraint = self._weapon.RigidConstraint
@@ -41,9 +42,10 @@ function CleaverTossAttack.new(npc)
         end
 
         local startPos = self._weapon.Position
-        local lookDir = (rootPart.Position - startPos).Unit
+        local posDiff = rootPart.Position - startPos
+        local distance = posDiff.Magnitude
         local rootPos = rootPart.Position
-        local rootLCFrame = CFrame.lookAt(rootPos, rootPos + lookDir)
+        local rootLCFrame = CFrame.lookAt(rootPos, rootPos + posDiff.Unit)
 
         local pointB = rootLCFrame * CFrame.Angles(0, -math.rad(CURVE_ANGLE/1.5), 0) * CFrame.new(0, 0, -CURVE_EXPANSION * 2.4)
         local pointC = rootLCFrame * CFrame.Angles(0, -math.rad(CURVE_ANGLE/2), 0) * CFrame.new(0, 0, -CURVE_EXPANSION)
@@ -54,13 +56,14 @@ function CleaverTossAttack.new(npc)
 
         self._rigidConstraint.Enabled = false
         self._weapon.Anchored = true
-        self._remoteEvent:FireAllClients(npc._obj, {pointB.Position, pointC.Position, pointD.Position, pointE.Position}, startTime)
+        self._throwTime = math.clamp(distance/30, 1, 4)
+        self._remoteEvent:FireAllClients(npc._obj, self._throwTime, {pointB.Position, pointC.Position, pointD.Position, pointE.Position}, startTime)
 
-        task.delay(CleaverTossConstants.THROW_TIME - (self._throwAnimation.Length/2), function()
+        task.delay(self._throwTime - (self._throwAnimation.Length/2), function()
             self._throwAnimation:Play(nil, nil, -1)
         end)
 
-        task.delay(CleaverTossConstants.THROW_TIME, function()
+        task.delay(self._throwTime, function()
             self._weapon.Anchored = false
             self._rigidConstraint.Enabled = true
             self._throwing = false
@@ -71,7 +74,7 @@ function CleaverTossAttack.new(npc)
 end
 
 function CleaverTossAttack:GetHitDebounce()
-    return CleaverTossConstants.THROW_TIME + 0.3
+    return self._throwTime + 0.3
 end
 
 return CleaverTossAttack

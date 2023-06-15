@@ -13,13 +13,14 @@ local Network = require("Network")
 local ItemRewardConstants = require("ItemRewardConstants")
 local SpecialRewards = require("SpecialRewards")
 local TableUtils = require("TableUtils")
+local GameManager = require("GameManager")
 
 -- ProfileService (data storage)
 local ProfileService = require("ProfileService")
 local PROFILE_KEY_FORMAT = "USER_%d"
 
 local ProfileStore = ProfileService.GetProfileStore(
-	"UserData_TEST_6",
+	"UserData_TEST_10",
 	DefaultData
 )
 
@@ -73,8 +74,9 @@ function UserData:GiveSpecialReward(userId, rewardName)
 	local data = profile.Data
 
 	local rewards = data.SpecialRewards
-	if not rewards[rewardName] then
-		local reward = assert(SpecialRewards[rewardName], string.format("%s is not a valid special reward.", rewardName))
+	local isTempReward = typeof(rewardName) == "table"
+	if isTempReward or not rewards[rewardName] then
+		local reward = assert(isTempReward and rewardName or SpecialRewards[rewardName], "Invalid reward")
 
         local keyTable = {}
 		for _, itemType in ipairs({"Weapons", "Armors", "Pets", "Helmets", "Abilities"}) do
@@ -89,11 +91,12 @@ function UserData:GiveSpecialReward(userId, rewardName)
             end
             keyTable[itemType] = tableCopy
         end
+		keyTable.XP, keyTable.Money = reward.XP, reward.Money
 
         if reward.PromptReward then
             local player = self:FindPlayer(userId)
             if player then
-                self._rewardRemoteEvent:FireClient(player, keyTable)
+                self._rewardRemoteEvent:FireClient(player, keyTable, reward.RewardHeader)
             end
         end
 
@@ -106,11 +109,11 @@ function UserData:GiveSpecialReward(userId, rewardName)
 			self:AwardCurrency(userId, "XP", reward.XP)
 		end
 
-		print(string.format("Gave user %d special reward %s.", userId, rewardName))
+		print(string.format("Gave user %d special reward %s.", userId, not isTempReward and rewardName or "temp_reward"))
 		-- print("Has weapons:", data.Weapons)
 		-- print("Has armors:", data.Armors)
 		-- print("Has pets:", data.Pets)
-        if not reward.RewardMultiple then
+        if not isTempReward and not reward.RewardMultiple then
 		    rewards[rewardName] = true
         end
 	else
@@ -345,27 +348,45 @@ Players.PlayerRemoving:Connect(function(player)
 	end
 end)
 
+local function giveDailyReward(userId, dayStreak)
+	local streakMultiplier = 1 + (dayStreak/10)
+	local randomObject = Random.new()
+	UserData:GiveSpecialReward(userId, {
+		PromptReward = true;
+		RewardHeader = ("Daily login day %i"):format(dayStreak);
+
+		Money = math.round(randomObject:NextInteger(20, 30) * streakMultiplier);
+		XP = math.round(randomObject:NextInteger(30, 50) * streakMultiplier);
+	})
+end
+
 -- When a user logs in
 loggedIn.Event:Connect(function(player: Player)
 	local profile = UserData:FindLoadedProfile(player.UserId)
 	assert(profile, "Profile not loaded.")
 	local data = profile.Data
 
-	local timeSinceLastLogin = os.time() - (data.LastLogin or os.time())
-	if timeSinceLastLogin <= 1 * DAY then
-		-- Daily login reward
-		data.AvailableLoginRewards = (data.AvailableLoginRewards or 0) + 1
+	if GameManager:IsLobby() then
+		local currentTime = os.time()
+		local timeSinceLastLogin = currentTime - (data.LastLoginReward or (currentTime - DAY))
 
-		-- Increment their daily logins
-		data.SuccessiveDailyLogins = (data.SuccessiveDailyLogins or 0) + 1
-	else
-		-- Reset their daily logins
-		data.SuccessiveDailyLogins = 0
+		if timeSinceLastLogin >= DAY * 0.9 and timeSinceLastLogin <= DAY * 2 then
+			data.SuccessiveDailyLogins = (data.SuccessiveDailyLogins or 0) + 1
+			data.LastLoginReward = currentTime
+
+			giveDailyReward(player.UserId, data.SuccessiveDailyLogins)
+		elseif timeSinceLastLogin > DAY * 2 then
+			-- Reset their daily logins
+			data.SuccessiveDailyLogins = 0
+			data.LastLoginReward = currentTime
+
+			giveDailyReward(player.UserId, data.SuccessiveDailyLogins)
+		end
+
+		-- Update the user's last login date
+		data.LastLogin = currentTime
+		data.PlayCount += 1
 	end
-
-	-- Update the user's last login date
-	data.LastLogin = os.time()
-    data.PlayCount += 1
 
     UserData.LoggedIn:Fire(player, profile)
 end)

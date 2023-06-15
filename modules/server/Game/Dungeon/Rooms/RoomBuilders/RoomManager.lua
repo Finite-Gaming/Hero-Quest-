@@ -10,6 +10,9 @@ local DoorOpener = require("DoorOpener")
 local DungeonDefeatedTasks = require("DungeonDefeatedTasks")
 local ProgressionHelper = require("ProgressionHelper")
 local DungeonData = require("DungeonData")
+local StudioDebugConstants = require("StudioDebugConstants")
+
+local RunService = game:GetService("RunService")
 
 local RoomManager = {}
 
@@ -20,38 +23,58 @@ function RoomManager:Init()
 
     self._progressionData = DungeonData[self._dungeonTag].ProgressionVoicelines
 
-    self:_setupRoom("1")
+    local starterRoom = "1"
+    if RunService:IsStudio() then
+        starterRoom = StudioDebugConstants.DungeonSpawnRoom or starterRoom
+    end
 
-    task.spawn(function()
-        local startTime = os.clock()
-        ProgressionHelper:WaitForAllPlayers()
-        local waitTime = task.wait(3)
-        local timeDiff = os.clock() - startTime
+    self:_setupRoom(starterRoom)
+    self:SetSpawn(starterRoom)
 
-        print(("[RoomManager] - Waited for all players to join, elapsed time: %f (Yield time: %f)")
-            :format(timeDiff, timeDiff - waitTime))
-
-        if ProgressionHelper:IsNewPlayers() then
-            ProgressionHelper:PlaySoundForScenario("Spawned", function()
-                self:ProgressRoom()
-            end)
-        else
-            ProgressionHelper:PlaySoundForScenario("Spawned")
-            self:ProgressRoom()
+    for _, room in ipairs(workspace.Rooms:GetChildren()) do
+        local spawnPart = room:FindFirstChild("SpawnPart")
+        if spawnPart then
+            spawnPart.Transparency = 1
         end
-    end)
+    end
+
+    if starterRoom == "1" then
+        task.spawn(function()
+            local startTime = os.clock()
+            ProgressionHelper:WaitForAllPlayers()
+            local waitTime = task.wait(3)
+            workspace:SetAttribute("DungeonEndTime", workspace:GetServerTimeNow() + DungeonData[self._dungeonTag].PlayTime * 60)
+            local timeDiff = os.clock() - startTime
+
+            print(("[RoomManager] - Waited for all players to join, elapsed time: %f (Yield time: %f)")
+                :format(timeDiff, timeDiff - waitTime))
+
+            if ProgressionHelper:IsNewPlayers() then
+                ProgressionHelper:PlaySoundForScenario("Spawned", function()
+                    self:ProgressRoom()
+                end)
+            else
+                ProgressionHelper:PlaySoundForScenario("Spawned")
+                self:ProgressRoom()
+            end
+        end)
+    end
 
     NPCSpawner.RoomCleared:Connect(function()
         self:ProgressRoom()
     end)
 end
 
-function RoomManager:WaitForAllPlayers()
-
-end
-
 function RoomManager:GetActiveRoom()
     return self._currentRoom
+end
+
+function RoomManager:SetSpawn(room)
+    self._spawn = workspace.Rooms:FindFirstChild(tostring(room)).SpawnPart
+end
+
+function RoomManager:GetSpawn()
+    return self._spawn
 end
 
 function RoomManager:OpenDoor(room)
@@ -82,6 +105,7 @@ function RoomManager:ProgressRoom()
         end
     end
 
+    self:SetSpawn(newRoom)
     self:OpenDoor(tostring(newRoom))
 
     self._currentRoom = newRoom

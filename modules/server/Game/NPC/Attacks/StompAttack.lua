@@ -8,6 +8,7 @@ local AttackBase = require("AttackBase")
 local Raycaster = require("Raycaster")
 local EffectPlayerService = require("EffectPlayerService")
 local PlayerDamageService = require("PlayerDamageService")
+local CameraShakeService = require("CameraShakeService")
 
 local Players = game:GetService("Players")
 
@@ -37,34 +38,45 @@ function StompAttack.new(npc)
         end
         EffectPlayerService:PlayEffect("AOE", effectPosition)
 
-        for _, player in ipairs(Players:GetPlayers()) do
-            local character = player.Character
-            if not character then
-                continue
-            end
+        task.delay(0.2, function()
+            for _, player in ipairs(Players:GetPlayers()) do
+                local character = player.Character
+                if not character then
+                    continue
+                end
 
-            local humanoid = character:FindFirstChild("Humanoid")
-            if not humanoid then
-                continue
-            end
+                local humanoid = character:FindFirstChild("Humanoid")
+                if not humanoid then
+                    continue
+                end
 
-            local rootPart = humanoid.RootPart
-            if not rootPart then
-                continue
-            end
-            local rootPos = rootPart.Position
-            local hDistance = math.sqrt((rootPos.X - effectPosition.X)^2 + (rootPos.Z - effectPosition.Z)^2)
-            if hDistance > self._radius then
-                continue
-            end
+                local rootPart = humanoid.RootPart
+                if not rootPart then
+                    continue
+                end
+                local rootPos = rootPart.Position
+                local hDistance = math.sqrt((rootPos.X - effectPosition.X)^2 + (rootPos.Z - effectPosition.Z)^2)
+                if hDistance > self._radius then
+                    continue
+                end
 
-            local vDistance = rootPos.Y - effectPosition.Y
-            if vDistance > 3.5 then
-                continue
-            end
+                CameraShakeService:Shake(player, 12)
 
-            PlayerDamageService:DamageCharacter(character, self._damage, 0, effectPosition, 1024, self._radius)
-        end
+                local vDistance = rootPos.Y - effectPosition.Y
+                if vDistance > 3.5 then
+                    continue
+                end
+
+                PlayerDamageService:DamageCharacter(
+                    character,
+                    self._damage,
+                    0,
+                    effectPosition,
+                    512,
+                    self._radius
+                )
+            end
+        end)
     end))
 
     return self

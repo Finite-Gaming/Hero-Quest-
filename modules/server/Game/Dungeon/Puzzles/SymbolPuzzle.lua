@@ -19,7 +19,7 @@ function SymbolPuzzle.new(obj)
     self.Solved = Signal.new() -- :Fire()
 
     self._currentStep = 1
-    warn("yo")
+
     self._orderedSymbols = {}
     self._originalColors = {}
     for _, symbol in ipairs(self._obj:GetChildren()) do

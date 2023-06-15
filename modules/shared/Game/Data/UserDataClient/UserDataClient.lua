@@ -33,8 +33,8 @@ function UserDataClient:Init()
 end
 
 function UserDataClient:HasBeatenDungeon()
-    if RunService:IsStudio() then
-        return StudioDebugConstants.SimulateRecurringPlayer
+    if RunService:IsStudio() and StudioDebugConstants.SimulateNewPlayer then
+        return true
     end
 
     return self._hasBeatenDungeon:InvokeServer()

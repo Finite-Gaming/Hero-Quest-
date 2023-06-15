@@ -41,6 +41,10 @@ function AttackBase.new(obj, animationFolder)
             self.SoundPlayed:Fire(soundName)
         end))
 
+        self._maid:AddTask(attackTrack:GetMarkerReachedSignal("CameraShake"):Connect(function(intensity)
+            self.ShakeCamera:Fire(intensity)
+        end))
+
         self._maid:AddTask(attackTrack.Stopped:Connect(function()
             self._playing = false
         end))
@@ -53,6 +57,7 @@ function AttackBase.new(obj, animationFolder)
     self.EndHitscan = self._maid:AddTask(Signal.new())
     self.SoundPlayed = self._maid:AddTask(Signal.new())
     self.AttackPlayed = self._maid:AddTask(Signal.new())
+    self.ShakeCamera = self._maid:AddTask(Signal.new())
 
     return self
 end

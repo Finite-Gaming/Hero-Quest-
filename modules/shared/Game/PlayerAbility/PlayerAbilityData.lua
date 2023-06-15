@@ -10,7 +10,7 @@ return {
             Damage = 2;
             DamageCooldown = 0.1;
             AbilityLength = 5;
-            Range = 10;
+            Range = 24;
         };
     }
 }

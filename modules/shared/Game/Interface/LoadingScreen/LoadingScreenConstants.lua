@@ -57,5 +57,6 @@ return {
         "Winter is here%s";
         "Placing Snowmelt%s";
         "Shaping Wintertusk%s";
+        "EPIC PLACEHOLDER!";
     };
 }

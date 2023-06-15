@@ -21,6 +21,7 @@ function DamageTracker.new(obj)
 end
 
 function DamageTracker:Damage(amount, player)
+    amount = math.clamp(amount, 0, self._obj.Health)
     if player then
         local totalDamage = self._playerDamage[player]
         if totalDamage then
@@ -32,6 +33,10 @@ function DamageTracker:Damage(amount, player)
 
     self._obj:TakeDamage(amount)
     self.Damaged:Fire(amount, player, self._obj.Health/self._obj.MaxHealth)
+end
+
+function DamageTracker:GetDamageMap()
+    return self._playerDamage
 end
 
 function DamageTracker:GetPlayerDamage(player)

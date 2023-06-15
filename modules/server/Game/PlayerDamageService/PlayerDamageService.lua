@@ -86,7 +86,7 @@ function PlayerDamageService:DamageCharacter(character, damage, cooldown, attack
 
         local difference = rootPart.Position - attackerPosition
         local blastPressure = 1 - (math.clamp(difference.Magnitude, 0, launchRadius)/launchRadius)
-        local force = difference.Unit * (launchForce * blastPressure)
+        local force = difference.Unit * (launchForce * blastPressure) * rootPart.AssemblyMass
 
         if player then
             humanoid.Sit = true

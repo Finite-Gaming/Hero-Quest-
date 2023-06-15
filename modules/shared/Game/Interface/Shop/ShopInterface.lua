@@ -12,6 +12,7 @@ local GuiTemplateProvider = require("GuiTemplateProvider")
 local ShopData = require("ShopData")
 local Network = require("Network")
 local ShopConstants = require("ShopConstants")
+local PopulateItemFrame = require("PopulateItemFrame")
 local ExitButtonMixin = require("ExitButtonMixin")
 
 local DEFAULT_THUMBNAIL = "rbxassetid://12017700691" -- Image that will be displayed if an item is missing a thumbnail
@@ -66,7 +67,7 @@ function ShopInterface:_setupGui()
         local orderedElements = {}
 
         for itemKey, itemData in pairs(shopCategory.Items) do
-            if itemData.NotBuyable then
+            if not itemData.Buyable then
                 continue
             end
             if not itemData.ProductId then
@@ -78,7 +79,7 @@ function ShopInterface:_setupGui()
             local itemGridItem = GuiTemplateProvider:Get("ItemGridItemTemplate")
             local imageButton = itemGridItem.ImageButton
 
-            imageButton.ImageLabel.Image = itemData.Thumbnail or DEFAULT_THUMBNAIL
+            PopulateItemFrame(imageButton.ImageLabel, shopCategory.DisplayName, itemKey)
             imageButton.BuyButton.TextLabel.Text = "..."
             task.spawn(function()
                 local productInfo = MarketplaceService:GetProductInfo(itemData.ProductId, Enum.InfoType.Product)
