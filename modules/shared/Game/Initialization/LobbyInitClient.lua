@@ -9,6 +9,9 @@ local LobbyInitClient = {}
 function LobbyInitClient:Init()
     require("UserDataClient"):Init()
     require("UserSettingsClient"):Init()
+    require("UserUpgradesClient"):Init()
+
+    require("NPCOverlapParams"):Init()
 
     require("GuiTemplateProvider"):Init()
     require("PartyServiceClient"):Init()

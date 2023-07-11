@@ -64,6 +64,8 @@ function RoomManager:Init()
                 self:ProgressRoom()
             end
         end)
+    else
+        self:_setupRoom(tostring(tonumber(starterRoom + 1)))
     end
 
     NPCSpawner.RoomCleared:Connect(function()
@@ -127,6 +129,7 @@ function RoomManager:ProgressRoom()
 end
 
 function RoomManager:_setupRoom(roomName)
+    roomName = tostring(math.clamp(tonumber(roomName), 0, self._totalRooms))
     NPCSpawner:SetupZone(roomName)
 
     local buildName = ("%s_%s"):format(self._dungeonTag, roomName)

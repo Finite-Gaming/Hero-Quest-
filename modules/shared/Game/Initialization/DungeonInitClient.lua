@@ -9,6 +9,7 @@ local DungeonInitClient = {}
 function DungeonInitClient:Init()
     require("UserDataClient"):Init()
     require("UserSettingsClient"):Init()
+    require("UserUpgradesClient")
 
     require("NPCOverlapParams"):Init()
     require("SoundModifier"):Init()

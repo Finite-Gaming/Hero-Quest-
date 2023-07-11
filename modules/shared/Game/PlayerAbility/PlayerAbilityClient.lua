@@ -100,7 +100,6 @@ function PlayerAbilityClient:_activate()
         return
     end
     if not abilityClass:CanActivate() then
-        print("out of range")
         return
     end
 

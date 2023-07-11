@@ -66,9 +66,9 @@ function MeleeWeaponClient.new(obj)
         coroutine.yield()
     end
 
-    if GameManager:IsDungeon() then
+    -- if GameManager:IsDungeon() then
         self._overlapParams = NPCOverlapParams:Get()
-    end
+    -- end
 
     self._raycaster = Raycaster.new()
     self._raycaster:Ignore({self._character, workspace.Terrain})
@@ -136,7 +136,7 @@ function MeleeWeaponClient:_addAttack(class, animationFolder)
 end
 
 function MeleeWeaponClient:_handleEquipped()
-    if GameManager:IsDungeon() then
+    -- if GameManager:IsDungeon() then
         self._maid.LockerUpdate = RunService.Heartbeat:Connect(function()
             if not UserSettingsClient:GetSetting("AutoTarget") then
                 return
@@ -168,7 +168,7 @@ function MeleeWeaponClient:_handleEquipped()
 
             self:_lockHumanoid(humanoid)
         end)
-    end
+    -- end
 
     self:_playAnimation(self._equipAnimation)
 end

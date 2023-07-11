@@ -85,8 +85,8 @@ function MeleeWeapon.new(obj)
 end
 
 function MeleeWeapon:_getDamage()
-    local multiplier = 1 + math.clamp(UserDataService:GetUpgradeLevel(self._player, "Damage")/100, 0, 100)
-    return math.random(self._damageRange.Min, self._damageRange.Max) * multiplier
+    return math.random(self._damageRange.Min, self._damageRange.Max) +
+        (UserDataService:GetUpgradeLevel(self._player, "Damage") * 1.2)
 end
 
 function MeleeWeapon:_handleHit(instance, position)
@@ -126,7 +126,7 @@ function MeleeWeapon:_handleEquipped()
     self._equipped = true
 
     local upgradeLevel = UserDataService:GetUpgradeLevel(self._player, "Damage")
-    self._obj:ScaleTo(BASE_SCALE + (BASE_SCALE * (upgradeLevel/150))) -- TODO: change this?
+    self._obj:ScaleTo(BASE_SCALE + (BASE_SCALE * (upgradeLevel/250))) -- TODO: change this?
 
     self._character.Animate.run:FindFirstChildOfClass("Animation").AnimationId = (self._animationFolder:FindFirstChild("Run") or GENERIC_ANIMATIONS.Run).AnimationId
 end

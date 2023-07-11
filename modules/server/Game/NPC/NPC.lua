@@ -30,6 +30,8 @@ local RandomRange = require("RandomRange")
 local CharacterOverlapParams = require("CharacterOverlapParams")
 local CameraShakeService = require("CameraShakeService")
 local QuestDataUtil = require("QuestDataUtil")
+local UserDataService = require("UserDataService")
+local ModelUtils = require("ModelUtils")
 
 local DEBUG_ENABLED = false -- Setting this to true will show debug ray parts, and display the NPC's FOV
 
@@ -368,8 +370,11 @@ function NPC.new(obj)
     end))
 
     self._maid:AddTask(self.Died:Connect(function()
-        for player, damage in pairs(self.DamageTracker:GetDamageMap()) do
-            UserData:AwardCurrency(player.UserId, "XP", math.round(damage * 1.4))
+        local BASE_REWARD = 50
+        for _, player in pairs(Players:GetPlayers()) do
+            local playerLevel = UserDataService:GetLevel(player)
+            UserData:AwardCurrency(player.UserId, "XP", BASE_REWARD * (1.015 ^ playerLevel))
+            UserData:AwardCurrency(player.UserId, "Money", BASE_REWARD * (1.01 ^ playerLevel))
         end
         if self._settings.SpecialReward then
             for _, player in ipairs(Players:GetPlayers()) do
@@ -377,6 +382,19 @@ function NPC.new(obj)
             end
         end
     end))
+
+    if self._settings.IsBoss then
+        if ProgressionHelper:IsBeaten() then
+            for _, part in ipairs(self._obj:GetDescendants()) do
+                if part:IsA("SurfaceAppearance") or part:IsA("Decal") then
+                    part:Destroy()
+                elseif part:IsA("BasePart") then
+                    part.Color = Color3.new(1, 1, 1)
+                    part.Material = Enum.Material.ForceField
+                end
+            end
+        end
+    end
 
     -- if self._animations.Idle then
     --     self._animations.Idle:Play()

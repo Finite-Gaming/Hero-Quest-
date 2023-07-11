@@ -21,7 +21,7 @@ local ProfileService = require("ProfileService")
 local PROFILE_KEY_FORMAT = "USER_%d"
 
 local ProfileStore = ProfileService.GetProfileStore(
-	"UserData_TEST_40",
+	"UserData_PRODUCTION_ALPHA",
 	DefaultData
 )
 

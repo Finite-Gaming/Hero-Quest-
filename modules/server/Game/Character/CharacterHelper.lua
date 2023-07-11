@@ -47,7 +47,7 @@ function CharacterHelper:UpdateStats(character)
     local healthMultipliers = {
         self:GetItemStat("Armors", equippedArmor, "Health");
         self:GetItemStat("Helmets", equippedHelmet, "Health");
-        healthUpgradeLevel/76; -- TODO: change this?
+        1.015 ^ healthUpgradeLevel; -- TODO: change this?
     }
     local playerHealth = BASE_HEALTH
     for _, multiplier in ipairs(healthMultipliers) do
@@ -63,14 +63,14 @@ function CharacterHelper:UpdateStats(character)
         playerSpeed += speedModifier
     end
 
-    character:ScaleTo(BASE_SCALE + (BASE_SCALE * (healthUpgradeLevel/150))) -- TODO: change this?
+    character:ScaleTo(BASE_SCALE + (BASE_SCALE * (healthUpgradeLevel/250))) -- TODO: change this?
 
     local equippedTool = character:FindFirstChildOfClass("Tool")
     local tools = player.Backpack:GetChildren()
     table.insert(tools, equippedTool)
     for _, tool in ipairs(tools) do
         local damageUpgradeLevel = UserDataService:GetUpgradeLevel(player, "Damage")
-        tool:ScaleTo(BASE_SCALE + (BASE_SCALE * (damageUpgradeLevel/150))) -- TODO: change this?
+        tool:ScaleTo(BASE_SCALE + (BASE_SCALE * (damageUpgradeLevel/250))) -- TODO: change this?
     end
 
     local healed = humanoid.Health == humanoid.MaxHealth

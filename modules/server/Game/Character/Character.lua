@@ -29,7 +29,7 @@ function Character.new(obj)
         ServerClassBinders.UpgradeUI:Bind(self._obj)
         ServerClassBinders.PlayScreen:Bind(self._obj)
         ServerClassBinders.RedeemCodeUI:Bind(self._obj)
-    elseif GameManager:IsDungeon() then
+    -- elseif GameManager:IsDungeon() then
         ServerClassBinders.PlayerAbilityUI:BindAsync(self._obj)
         ServerClassBinders.PlayerAbility:Bind(self._obj)
     end

@@ -109,21 +109,19 @@ function ArmorApplier:_applyToLimb(character, armorPiece)
     end
 
     primaryPart.Name = "Handle"
-    primaryPart.Anchored = true
     armorPiece.PrimaryPart = nil
 
-    -- primaryPart.Size = limb.Size + Vector3.one * 0.2
-    -- TODO: scale entire model, kinda waiting on :ScaleTo to release :grin:
     AssemblyUtils.rigidAssemble(armorPiece)
-    armorPiece:PivotTo(limb:GetPivot())
+    self:_processPart(primaryPart)
 
-    primaryPart.Anchored = false
     if armorPiece:IsA("BasePart") then
         self:_processPart(armorPiece)
     end
     for _, part in ipairs(ModelUtils.getParts(armorPiece)) do
         self:_processPart(part)
     end
+
+    armorPiece:PivotTo(limb:GetPivot())
     WeldUtils.weld(primaryPart, limb)
     armorPiece.Parent = limb
 
