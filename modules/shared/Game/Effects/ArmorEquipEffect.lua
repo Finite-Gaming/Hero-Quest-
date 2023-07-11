@@ -67,6 +67,7 @@ function ArmorEquipEffect.new(character, armorName, endTime)
             end
             totalLimbs += 1
 
+            armorPiece:ScaleTo(character:GetScale())
             local shouldSkip = false
             for _, replicatedArmor in ipairs(limb:GetChildren()) do
                 if replicatedArmor:GetAttribute("SetKey") == endTime then

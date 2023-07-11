@@ -22,6 +22,20 @@ function DoorOpenerClient:Init()
             self:_openDoor(door)
         end
     end)
+
+    task.spawn(function()
+        for _, room in ipairs(workspace:WaitForChild("Rooms"):GetChildren()) do
+            local doors = room:FindFirstChild("Doors")
+            if not doors then
+                continue
+            end
+            for _, door in ipairs(doors:GetChildren()) do
+                if door:GetAttribute("Opened") then
+                    self:_openDoor(door)
+                end
+            end
+        end
+    end)
 end
 
 function DoorOpenerClient:_openDoor(door)

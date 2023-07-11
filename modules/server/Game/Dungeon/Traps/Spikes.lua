@@ -68,7 +68,7 @@ function Spikes.new(obj)
 end
 
 function Spikes:_damageHumanoid(humanoid)
-    PlayerDamageService:DamageCharacter(humanoid.Parent, 30, DAMAGE_COOLDOWN)
+    PlayerDamageService:DamageCharacter(humanoid.Parent, 30, "Spike", DAMAGE_COOLDOWN)
 end
 
 function Spikes:_setState(bool)

@@ -34,6 +34,8 @@ function EffectPlayerClient:PlayEffect(effectName, position, color)
     local maxDelay = 0
 
     effect.Anchored = true
+    effect.CanCollide = false
+    effect.CanQuery = false
     effect.Position = position
     effect.Parent = workspace.Terrain
 

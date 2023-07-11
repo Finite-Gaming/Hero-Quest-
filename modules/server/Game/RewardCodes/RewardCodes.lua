@@ -5,31 +5,7 @@ return {
 
         SpecialReward = "WardenBoss";
     };
-    devcode1 = {
-        SpecialReward = "WardenBoss";
-    };
-    devcode2 = {
-        SpecialReward = "WardenBoss";
-    };
-    devcode3 = {
-        SpecialReward = "WardenBoss";
-    };
-    devcode4 = {
-        SpecialReward = "WardenBoss";
-    };
-    devcode5 = {
-        SpecialReward = "WardenBoss";
-    };
-    devcode6 = {
-        SpecialReward = "WardenBoss";
-    };
-    devcode7 = {
-        SpecialReward = "WardenBoss";
-    };
-    devcode8 = {
-        SpecialReward = "WardenBoss";
-    };
-    devcode9 = {
-        SpecialReward = "WardenBoss";
+    ["8CD8942C-30C7-4909-9F6D-0526F13F8F0F"] = {
+        SpecialReward = "Developer";
     };
 }

@@ -7,6 +7,7 @@ local require = require(game:GetService("ReplicatedStorage"):WaitForChild("Compl
 local DamageFeedback = require("DamageFeedback")
 local ApplyImpulse = require("ApplyImpulse")
 local ServerClassBinders = require("ServerClassBinders")
+local UserDataService = require("UserDataService")
 
 local Players = game:GetService("Players")
 
@@ -22,7 +23,7 @@ function PlayerDamageService:DamagePlayer(player, ...)
     return self:DamageCharacter(player.Character, ...)
 end
 
-function PlayerDamageService:DamageCharacter(character, damage, cooldown, attacker, launchForce, launchRadius)
+function PlayerDamageService:DamageCharacter(character, damage, damageTag, cooldown, attacker, launchForce, launchRadius)
     if not character then
         warn("[PlayerDamageService] - No character")
         return
@@ -103,7 +104,7 @@ function PlayerDamageService:DamageCharacter(character, damage, cooldown, attack
         if not damageTracker then
             humanoid:TakeDamage(damage)
         else
-            damageTracker:Damage(damage, attacker)
+            damageTracker:Damage(damage, attacker, damageTag)
         end
     end
 

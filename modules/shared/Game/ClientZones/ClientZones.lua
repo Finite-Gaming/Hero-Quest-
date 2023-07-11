@@ -11,18 +11,23 @@ local Players = game:GetService("Players")
 local ClientZones = {}
 
 function ClientZones:Init()
-    local upgradeZone = workspace:WaitForChild("Zones"):WaitForChild("UpgradeZone")
-    local upgradeClientZone = ClientClassBinders.ClientZone:BindAsync(upgradeZone)
+    local zones = workspace:WaitForChild("Zones")
 
+    self:_bindZone(zones:WaitForChild("UpgradeZone"), ClientClassBinders.UpgradeUI)
+    -- self:_bindZone(zones:WaitForChild("QuestZone"), ClientClassBinders.QuestUI)
+end
+
+function ClientZones:_bindZone(zone, uiBinder)
+    local upgradeClientZone = ClientClassBinders.ClientZone:BindAsync(zone)
     upgradeClientZone.OnEnter:Connect(function()
         local character = Players.LocalPlayer.Character
 
-        local upgradeUI = ClientClassBinders.UpgradeUI:Get(character)
-        if not upgradeUI then
+        local uiObject = uiBinder:Get(character)
+        if not uiObject then
             return
         end
 
-        upgradeUI:SetEnabled(true)
+        uiObject:SetEnabled(true)
     end)
     upgradeClientZone.OnLeave:Connect(function()
         local character = Players.LocalPlayer.Character
@@ -30,12 +35,12 @@ function ClientZones:Init()
             return
         end
 
-        local upgradeUI = ClientClassBinders.UpgradeUI:Get(character)
-        if not upgradeUI then
+        local uiObject = uiBinder:Get(character)
+        if not uiObject then
             return
         end
 
-        upgradeUI:SetEnabled(false)
+        uiObject:SetEnabled(false)
     end)
 end
 

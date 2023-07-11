@@ -14,10 +14,12 @@ local scripts = {
 }
 
 local lines = 0
+local scriptss = 0
 
 for _, serviceName in ipairs(services) do
     for _, script in ipairs(game:GetService(serviceName):GetDescendants()) do
         if scripts[script.ClassName] then
+            scriptss += 1
             lines += #script.Source:split("\n")
             warn(script.Name,  #script.Source:split("\n"))
         end
@@ -25,3 +27,4 @@ for _, serviceName in ipairs(services) do
 end
 
 warn(lines)
+print(scriptss)

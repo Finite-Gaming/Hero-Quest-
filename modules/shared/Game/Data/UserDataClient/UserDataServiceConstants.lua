@@ -19,5 +19,7 @@ return {
     GET_EXPERIENCE_REMOTE_FUNCTION_NAME = "GetExperienceRemoteFunction";
     GET_MONEY_REMOTE_FUNCTION_NAME = "GetMoneyRemoteFunction";
 
-    IS_FIRST_TIMER_REMOTE_FUNCTION_NAME = "IsFirstTimerRemoteFunction"
+    IS_FIRST_TIMER_REMOTE_FUNCTION_NAME = "IsFirstTimerRemoteFunction";
+
+    GET_QUEST_DATA_REMOTE_FUNCTION_NAME = "GetQuestDataRemoteFunction";
 }

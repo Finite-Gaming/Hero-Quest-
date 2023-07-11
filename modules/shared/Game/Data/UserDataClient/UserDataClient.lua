@@ -28,6 +28,7 @@ function UserDataClient:Init()
     self:_addMethod("GetExperience", Network:GetRemoteFunction(UserDataServiceConstants.GET_EXPERIENCE_REMOTE_FUNCTION_NAME))
     self:_addMethod("GetMoney", Network:GetRemoteFunction(UserDataServiceConstants.GET_MONEY_REMOTE_FUNCTION_NAME))
     self:_addMethod("IsFirstTimer", Network:GetRemoteFunction(UserDataServiceConstants.IS_FIRST_TIMER_REMOTE_FUNCTION_NAME))
+    self:_addMethod("GetQuestData", Network:GetRemoteFunction(UserDataServiceConstants.GET_QUEST_DATA_REMOTE_FUNCTION_NAME))
 
     self._hasBeatenDungeon = Network:GetRemoteFunction(UserDataServiceConstants.HAS_BEATEN_DUNGEON_REMOTE_FUNCTION_NAME)
 end

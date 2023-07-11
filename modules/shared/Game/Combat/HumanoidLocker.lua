@@ -6,6 +6,7 @@ local require = require(game:GetService("ReplicatedStorage"):WaitForChild("Compl
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
+local GameSettings = UserSettings():GetService("UserGameSettings")
 
 local BaseObject = require("BaseObject")
 local Signal = require("Signal")
@@ -41,6 +42,7 @@ function HumanoidLocker.new(obj)
         return
     end
 
+    GameSettings.RotationType = Enum.RotationType.MovementRelative
     self._highlight = self._maid:AddTask(Instance.new("Highlight"))
 
     local RED = Color3.new(1, 0, 0)
@@ -72,6 +74,9 @@ function HumanoidLocker.new(obj)
     end))
     self._maid:AddTask(self._obj.Died:Connect(function()
         self:Destroy()
+    end))
+    self._maid:AddTask(RunService.RenderStepped:Connect(function()
+        GameSettings.RotationType = Enum.RotationType.MovementRelative
     end))
 
     self._maid:AddTask(function()

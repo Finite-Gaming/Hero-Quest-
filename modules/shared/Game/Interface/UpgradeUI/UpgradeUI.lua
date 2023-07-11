@@ -14,6 +14,7 @@ local VoicelineService = require("VoicelineService")
 local SoundPlayer = require("SoundPlayer")
 local PlayerLevelCalculator = require("PlayerLevelCalculator")
 local ExitButtonMixin = require("ExitButtonMixin")
+local EffectPlayerClient = require("EffectPlayerClient")
 
 -- TODO: cap level?
 local UpgradeUI = setmetatable({}, BaseObject)
@@ -57,7 +58,6 @@ function UpgradeUI:_updateLabels()
         container.LevelLabel.TextLabel.Text = ("LVL: %i"):format(upgradeLevel)
     end
 
-    -- dont forget to update level here
     local classAlignment = PlayerLevelCalculator:GetClassAlignment(upgradeData)
     self._gui.MainFrame.RedBox.TextLabel.Text = ("Maximum Level: 128\nCurrent Class Alignment: %s")
         :format(classAlignment)
@@ -76,6 +76,14 @@ function UpgradeUI:_bindButton(button, upgradeName)
                         VoicelineService:PlayGroupForZone(voiceline, "UpgradeUI")
                     end
                 end)
+            end
+
+            local humanoid = self._obj:FindFirstChild("Humanoid")
+            if humanoid then
+                local rootPart = humanoid.rootPart
+                if rootPart then
+                    EffectPlayerClient:PlayEffect(("%sUpgrade"):format(upgradeName), rootPart.Position + Vector3.new(0, -humanoid.HipHeight, 0))
+                end
             end
 
             self:_updateLabels()

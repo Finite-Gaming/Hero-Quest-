@@ -46,7 +46,7 @@ function ProgressionHelper:HandlePlayerLoggedIn(player, profile)
         if not self._newPlayers then
             local playedDict = profile.Data.DungeonsPlayed
             if playedDict[self._dungeonTag] then
-                if PlayerLevelCalculator:GetLevelFromXP(profile.Data.XP) >= DungeonData[self._dungeonTag].MaxLevel then
+                if PlayerLevelCalculator:GetLevelFromXP(profile.Data.XP) >= DungeonData[self._dungeonTag].PlayIndex * 15 then
                     self._levelMaxed = true
                 end
             else

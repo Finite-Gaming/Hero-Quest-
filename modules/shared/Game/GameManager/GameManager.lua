@@ -12,19 +12,19 @@ local DUNGEON_IDS = {
     [12115951613] = true;
 }
 
-local placeId = workspace:GetAttribute("SimulatedPlaceId") or game.PlaceId
-if placeId == 0 then
+local gamePlaceId = workspace:GetAttribute("SimulatedPlaceId") or game.PlaceId
+if gamePlaceId == 0 then
     error("Publish this place before continuing")
 end
 
 local BaseService = {}
 
-function BaseService:IsLobby()
-    return not not LOBBY_IDS[placeId]
+function BaseService:IsLobby(placeId)
+    return not not LOBBY_IDS[placeId or gamePlaceId]
 end
 
-function BaseService:IsDungeon()
-    return not not DUNGEON_IDS[placeId]
+function BaseService:IsDungeon(placeId)
+    return not not DUNGEON_IDS[placeId or gamePlaceId]
 end
 
 return BaseService

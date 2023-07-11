@@ -24,4 +24,13 @@ function TableUtils.count(t)
     return count
 end
 
+function TableUtils.getRandomDictKey(dict)
+    local keyTable = {}
+    for key, _ in pairs(dict) do
+        table.insert(keyTable, key)
+    end
+
+    return keyTable[math.random(1, #keyTable)]
+end
+
 return TableUtils

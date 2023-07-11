@@ -7,6 +7,7 @@ local require = require(game:GetService("ReplicatedStorage"):WaitForChild("Compl
 local ScreenGuiProvider = require("ScreenGuiProvider")
 local GuiTemplateProvider = require("GuiTemplateProvider")
 local Maid = require("Maid")
+local SoundPlayer = require("SoundPlayer")
 
 local TweenService = game:GetService("TweenService")
 
@@ -17,7 +18,7 @@ local DEFAULT_LIFETIME = 3
 
 local SHOW_TWEEN_INFO = TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 local HIDE_TWEEN_INFO = TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
--- TODO: sounds (easy)
+
 local FOREGROUNDS = {
     Success = "rbxassetid://13380132416";
     Warning = "rbxassetid://13380132168";
@@ -34,6 +35,7 @@ function NotificationService:Init()
 end
 
 function NotificationService:Notify(text, notificationType, lifetime)
+    notificationType = notificationType or "Information"
     self._zIndex += 1
     if self._activeNotification then
         self._activeNotification:Destroy()
@@ -45,7 +47,7 @@ function NotificationService:Notify(text, notificationType, lifetime)
     local active = true
 
     gui.ZIndex = self._zIndex
-    gui.Foreground.Image = notificationType and FOREGROUNDS[notificationType] or FOREGROUNDS.Information
+    gui.Foreground.Image = notificationType and FOREGROUNDS[notificationType]
     gui.TextLabel.Text = text
 
     maid:AddTask(function()
@@ -64,6 +66,7 @@ function NotificationService:Notify(text, notificationType, lifetime)
     gui.Position = NOT_VISIBLE_POSITION
     gui.Parent = self._screenGui
     TweenService:Create(gui, SHOW_TWEEN_INFO, {Position = VISIBLE_POSITION}):Play()
+    SoundPlayer:PlaySound(("Notification%s"):format(notificationType))
 
     if lifetime ~= -1 then
         task.delay(lifetime or DEFAULT_LIFETIME, function()

@@ -19,6 +19,8 @@ local EffectPlayerService = require("EffectPlayerService")
 local UserDataService = require("UserDataService")
 local PlayerLevelCalculator = require("PlayerLevelCalculator")
 local CharacterOverlapParams = require("CharacterOverlapParams")
+local QuestDataUtil = require("QuestDataUtil")
+local CharacterHelper = require("CharacterHelper")
 
 local RoomManager
 if GameManager:IsDungeon() then
@@ -34,6 +36,9 @@ function CharacterService:Init()
 
     Players.PlayerAdded:Connect(function(player)
         self:_handlePlayerAdded(player)
+    end)
+    Players.PlayerRemoving:Connect(function(player)
+        QuestDataUtil.check(player, "PlayerLeaving")
     end)
     for _, player in ipairs(Players:GetPlayers()) do
         task.spawn(self._handlePlayerAdded, self, player)
@@ -64,6 +69,7 @@ function CharacterService:_handlePlayerAdded(player)
         self:SpawnPlayer(player)
     end
 
+    player:SetAttribute("Deaths", 0)
 	self:_handleCharacterAdded(player, player.Character)
 	player.CharacterAdded:Connect(function(character)
         self:_handleCharacterAdded(player, character)
@@ -104,7 +110,10 @@ function CharacterService:_handleCharacterAdded(player, character)
         humanoid = character:FindFirstChildWhichIsA("Humanoid")
     end
 
+    CharacterHelper:UpdateStats(character)
+
     humanoid.Died:Connect(function()
+        player:SetAttribute("Deaths", player:GetAttribute("Deaths") + 1)
         task.wait(Players.RespawnTime)
         self:SpawnPlayer(player)
     end)
@@ -115,7 +124,15 @@ function CharacterService:SpawnPlayer(player)
 
     if GameManager:IsDungeon() then
         local character = player.Character
-        character:PivotTo(RoomManager:GetSpawn().CFrame * CFrame.new(0, 2, 0))
+        local spawnPad = RoomManager:GetSpawn()
+        local randomObject = Random.new()
+        local spawnSizeX, spawnSizeZ = spawnPad.Size.X/2, spawnPad.Size.Z/2
+        local randomOffset = Vector3.new(
+            randomObject:NextNumber(spawnSizeX, -spawnSizeX),
+            2,
+            randomObject:NextNumber(spawnSizeZ, -spawnSizeZ)
+        )
+        character:PivotTo(spawnPad.CFrame * CFrame.new(randomOffset))
         CharacterOverlapParams:Add(character)
     end
 end

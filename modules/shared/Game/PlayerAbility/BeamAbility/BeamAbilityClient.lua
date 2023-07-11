@@ -55,8 +55,9 @@ function BeamAbilityClient.new(obj)
     self._startAtt.Parent = self._leftGrip.Parent
 
     self._endAtt.Parent = workspace.Terrain
+    self._runningLocally = self._obj == Players.LocalPlayer.Character
 
-    if self._obj == Players.LocalPlayer.Character then
+    if self._runningLocally then
         self._animationTracks = {
             Start = self._maid:AddTask(AnimationTrack.new(self._abilityPack.StartAnimation, self._humanoid));
             Loop = self._maid:AddTask(AnimationTrack.new(self._abilityPack.LoopAnimation, self._humanoid));
@@ -93,6 +94,11 @@ function BeamAbilityClient:_setEffectsEnabled(state)
     end
 end
 
+function BeamAbilityClient:CanActivate()
+    return #workspace:GetPartBoundsInRadius(self._humanoidRootPart.Position, self._baseStats.Range, self._overlapParams)
+        ~= 0
+end
+
 function BeamAbilityClient:Activate(state)
     self._remoteEvent:FireServer("Activate", state)
 
@@ -101,16 +107,21 @@ end
 
 function BeamAbilityClient:_activate(state)
     if state then
-        self._animationTracks.Start:Play()
+        if self._runningLocally then
+            self._animationTracks.Start:Play()
+        end
         local runnerMaid = Maid.new()
 
         runnerMaid:AddTask(function()
-            HumanoidLockerService:LockHumanoid(nil)
             self:_setEffectsEnabled(false)
 
-            for _, animationTrack in pairs(self._animationTracks) do
-                if animationTrack.IsPlaying then
-                    animationTrack:Stop()
+            if self._runningLocally then
+                HumanoidLockerService:LockHumanoid(nil)
+
+                for _, animationTrack in pairs(self._animationTracks) do
+                    if animationTrack.IsPlaying then
+                        animationTrack:Stop()
+                    end
                 end
             end
         end)
@@ -154,7 +165,7 @@ function BeamAbilityClient:_activate(state)
 end
 
 function BeamAbilityClient:_lockHumanoid(humanoid)
-    if self._obj == Players.LocalPlayer.Character then
+    if self._runningLocally then
         HumanoidLockerService:LockHumanoid(humanoid)
     end
 end

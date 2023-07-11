@@ -2,11 +2,11 @@
 -- @classmod UserDataService
 -- @author
 
+local Players = game:GetService("Players")
 local require = require(game:GetService("ReplicatedStorage"):WaitForChild("Compliance"))
 
 local Network = require("Network")
 local UserDataServiceConstants = require("UserDataServiceConstants")
-local UserData = require("UserData")
 local ServerClassBinders = require("ServerClassBinders")
 local DungeonData = require("DungeonData")
 local TableUtils = require("TableUtils")
@@ -17,6 +17,7 @@ local RewardCodes = require("RewardCodes")
 local UpgradePriceUtil = require("UpgradePriceUtil")
 local ProgressionHelper = require("ProgressionHelper")
 local PlayerLevelCalculator = require("PlayerLevelCalculator")
+local DefaultData = require("DefaultData")
 
 local secureGetTypes = {
     ["Armors"] = true,
@@ -53,6 +54,8 @@ local DATE_TIME_9999 = DateTime.fromUnixTimestamp(253402300799) -- funny magic n
 local UserDataService = {}
 
 function UserDataService:Init()
+    local UserData = require("UserData")
+
     do -- items
         self:_connectRemote("GetItems", UserDataServiceConstants.GET_ITEMS_REMOTE_FUNCTION_NAME, function(player, itemType)
             assert(typeof(itemType) == "string", "Invalid itemType")
@@ -102,16 +105,18 @@ function UserDataService:Init()
 
     do -- settings
         self:_connectRemote("SetSetting", UserDataServiceConstants.SET_SETTING_REMOTE_FUNCTION_NAME, function(player, settingName, settingValue)
+            assert(type(settingName) == "string")
             local profile = UserData:WaitForProfile(player.UserId)
 
             local data = profile.Data
             local settings = data.Settings
 
-            -- TODO: Validate types
+            assert(settings[settingName] ~= nil)
+            assert(type(settingValue) == type(settings[settingName]))
             settings[settingName] = settingValue
         end)
 
-        self:_connectRemote("GetSetting", UserDataServiceConstants.GET_SETTING_REMOTE_FUNCTION_NAME, function(player)
+        self:_connectRemote("GetSettings", UserDataServiceConstants.GET_SETTINGS_REMOTE_FUNCTION_NAME, function(player)
             local profile = UserData:WaitForProfile(player.UserId)
 
             local data = profile.Data
@@ -120,7 +125,7 @@ function UserDataService:Init()
             return settings
         end)
 
-        self:_connectRemote("GetSettings", UserDataServiceConstants.GET_SETTINGS_REMOTE_FUNCTION_NAME, function(player, settingName)
+        self:_connectRemote("GetSetting", UserDataServiceConstants.GET_SETTING_REMOTE_FUNCTION_NAME, function(player, settingName)
             local profile = UserData:WaitForProfile(player.UserId)
 
             local data = profile.Data
@@ -162,33 +167,39 @@ function UserDataService:Init()
     do -- codes
         self:_connectRemote("RedeemCode", UserDataServiceConstants.REDEEM_CODE_REMOTE_FUNCTION_NAME, function(player, rewardCode)
             assert(typeof(rewardCode) == "string")
-            local redeemedCodes = UserData:WaitForProfile(player.UserId).Data.RedeemedRewardCodes
-            if redeemedCodes[rewardCode] then
-                return false, "Code already redeemed!"
-            end
+            local profile = UserData:WaitForProfile(player.UserId)
+            if rewardCode == "RESET_DATA" then
+                profile.Data = DefaultData
+                player:Kick("Your data has been reset, please rejoin.")
+            else
+                local redeemedCodes = profile.Data.RedeemedRewardCodes
+                if redeemedCodes[rewardCode] then
+                    return false, "Code already redeemed!"
+                end
 
-            local rewardData = RewardCodes[rewardCode]
-            if not rewardData then
-                return false, "Invalid code!"
-            end
+                local rewardData = RewardCodes[rewardCode]
+                if not rewardData then
+                    return false, "Invalid code!"
+                end
 
-            local validFrom = rewardData.ValidFrom or DATE_TIME_0 -- default to infinitely avaliable if value not present
-            local validTo = rewardData.ValidTo or DATE_TIME_9999
+                local validFrom = rewardData.ValidFrom or DATE_TIME_0 -- default to infinitely avaliable if value not present
+                local validTo = rewardData.ValidTo or DATE_TIME_9999
 
-            local currentDateTime = DateTime.now()
-            if currentDateTime.UnixTimestamp < validFrom.UnixTimestamp then
-                return false, "Code not valid yet!"
-            end
-            if currentDateTime.UnixTimestamp >= validTo.UnixTimestamp then
-                return false, "Code expired!"
-            end
+                local currentDateTime = DateTime.now()
+                if currentDateTime.UnixTimestamp < validFrom.UnixTimestamp then
+                    return false, "Code not valid yet!"
+                end
+                if currentDateTime.UnixTimestamp >= validTo.UnixTimestamp then
+                    return false, "Code expired!"
+                end
 
-            if not rewardData.SpecialReward then
-                return false, ("Error: Please contact a developer if you see this (Code: %s)"):format(rewardCode)
-            end
+                if not rewardData.SpecialReward then
+                    return false, ("Error: Please contact a developer if you see this (Code: %s)"):format(rewardCode)
+                end
 
-            redeemedCodes[rewardCode] = true
-            UserData:GiveSpecialReward(player.UserId, rewardData.SpecialReward)
+                redeemedCodes[rewardCode] = true
+                UserData:GiveSpecialReward(player.UserId, rewardData.SpecialReward)
+            end
 
             return true, "Success!"
         end)
@@ -231,6 +242,7 @@ function UserDataService:Init()
                 data.UpgradeData[upgradeName] += 1
                 local classAlignment = PlayerLevelCalculator:GetClassAlignment(data.UpgradeData)
                 player:SetAttribute("ClassAlignment", classAlignment)
+                require("CharacterHelper"):UpdateStats(player)
 
                 return true, "Success!", data.UpgradeData[upgradeName]
             else
@@ -253,13 +265,41 @@ function UserDataService:Init()
             return ProgressionHelper:IsFirstTimer(player)
         end)
     end
+
+    do -- quest
+        self:_connectRemote("GetQuestData", UserDataServiceConstants.GET_QUEST_DATA_REMOTE_FUNCTION_NAME, function(player)
+            local sanitizedQuestData = {}
+            for difficulty, quest in pairs(UserData:WaitForProfile(player.UserId).Data.QuestData) do
+                local sanitizedQuest = {
+                    DisplayText = quest.DisplayText;
+                    Variables = table.create(#quest.Variables);
+                    DataPath = quest.DataPath;
+                }
+
+                for index, variable in ipairs(quest.Variables) do
+                    variable.Increment = nil
+                    variable.IncrementType = nil
+                    sanitizedQuest.Variables[index] = variable
+                end
+
+                sanitizedQuestData[difficulty] = sanitizedQuest
+            end
+
+            return sanitizedQuestData
+        end)
+    end
 end
 
 function UserDataService:_connectRemote(methodName, remoteFunctionName, onInvoke)
     Network:GetRemoteFunction(remoteFunctionName).OnServerInvoke = onInvoke
 
-    self[methodName] = function(self, ...)
-        return onInvoke(...)
+    self[methodName] = function(self, player, ...)
+        if typeof(player) == "number" then
+            player = Players:GetPlayerByUserId(player)
+        end
+        assert(player, "No player!")
+
+        return onInvoke(player, ...)
     end
 end
 

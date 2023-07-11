@@ -27,6 +27,8 @@ function LobbyInit:Init()
     require("VoicelineService"):Init()
     require("EffectPlayerService"):Init()
     require("ApplyImpulse"):Init()
+    require("PhaseInAnimator"):Init()
+    require("QuestUpdater"):Init()
 
     require("PlayerNoCollideService"):Init()
     require("PetService"):Init()

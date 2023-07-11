@@ -105,11 +105,18 @@ function NPCSpawner:SetupZone(npcZoneName)
 
                     VoicelineService:PlayRandomGroupForZone(("%s_Chase"):format(variant), npcZoneName, rootPart, true)
                     chaseChance = 10
+                elseif state == "Scared" then
+                    if math.random(1, chaseChance) ~= chaseChance then
+                        return
+                    end
+
+                    VoicelineService:PlayRandomGroupForZone(("%s_Scared"):format(variant), npcZoneName, rootPart, true)
+                    chaseChance = 10
                 end
             end))
             zoneMaid:AddTask(npc.DamageTracker.Damaged:Connect(function(_, _, healthP)
                 if healthP <= 0.25 then
-                    if math.random(1, 10) == 1 then
+                    if math.random(1, 6) == 1 then
                         VoicelineService:PlayRandomGroupForZone(("%s_Damaged"):format(variant), npcZoneName, rootPart)
                     end
                 end

@@ -13,13 +13,14 @@ local DungeonData = require("DungeonData")
 local StudioDebugConstants = require("StudioDebugConstants")
 
 local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
+local TeleportService = game:GetService("TeleportService")
 
 local RoomManager = {}
 
 function RoomManager:Init()
     self._dungeonTag = assert(workspace:GetAttribute("DungeonTag"), "No DungeonTag attribute under workspace!")
     self._totalRooms = #workspace.Rooms:GetChildren()
-    self._currentRoom = 0
 
     self._progressionData = DungeonData[self._dungeonTag].ProgressionVoicelines
 
@@ -28,6 +29,7 @@ function RoomManager:Init()
         starterRoom = StudioDebugConstants.DungeonSpawnRoom or starterRoom
     end
 
+    self._currentRoom = tonumber(starterRoom) - 1
     self:_setupRoom(starterRoom)
     self:SetSpawn(starterRoom)
 
@@ -43,7 +45,11 @@ function RoomManager:Init()
             local startTime = os.clock()
             ProgressionHelper:WaitForAllPlayers()
             local waitTime = task.wait(3)
-            workspace:SetAttribute("DungeonEndTime", workspace:GetServerTimeNow() + DungeonData[self._dungeonTag].PlayTime * 60)
+            local playTime = DungeonData[self._dungeonTag].PlayTime * 60
+            workspace:SetAttribute("DungeonEndTime", workspace:GetServerTimeNow() + playTime)
+            task.delay(playTime, function()
+                TeleportService:TeleportAsync(9323803256, Players:GetPlayers())
+            end)
             local timeDiff = os.clock() - startTime
 
             print(("[RoomManager] - Waited for all players to join, elapsed time: %f (Yield time: %f)")

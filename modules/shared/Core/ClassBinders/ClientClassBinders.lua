@@ -5,21 +5,25 @@
 local require = require(game:GetService("ReplicatedStorage"):WaitForChild("Compliance"))
 
 local ClassBinder = require("ClassBinder")
+local ClientBinder = require("ClientBinder")
 local ClassBinderProvider = require("ClassBinderProvider")
 
 return ClassBinderProvider.new(function(self)
     -- Interface
-    self:AddClassBinder(ClassBinder.new("PlayerInfoDisplay", require("PlayerInfoDisplay")))
-    self:AddClassBinder(ClassBinder.new("ShopInterface", require("ShopInterface")))
-    self:AddClassBinder(ClassBinder.new("InventoryUI", require("InventoryUI")))
-    self:AddClassBinder(ClassBinder.new("UpgradeUI", require("UpgradeUI")))
-    self:AddClassBinder(ClassBinder.new("RedeemCodeUI", require("RedeemCodeUI")))
-    self:AddClassBinder(ClassBinder.new("MainButtonsInterface", require("MainButtonsInterface")))
-    self:AddClassBinder(ClassBinder.new("PlayerAbilityUI", require("PlayerAbilityUI")))
-    self:AddClassBinder(ClassBinder.new("PlayScreen", require("PlayScreen")))
+    self:AddClassBinder(ClientBinder.new("PlayerInfoDisplay", require("PlayerInfoDisplay")))
+    self:AddClassBinder(ClientBinder.new("ShopInterface", require("ShopInterface")))
+    self:AddClassBinder(ClientBinder.new("InventoryUI", require("InventoryUI")))
+    self:AddClassBinder(ClientBinder.new("UpgradeUI", require("UpgradeUI")))
+    self:AddClassBinder(ClientBinder.new("RedeemCodeUI", require("RedeemCodeUI")))
+    self:AddClassBinder(ClientBinder.new("QuestUI", require("QuestUI")))
+    self:AddClassBinder(ClientBinder.new("SettingsUI", require("SettingsUI")))
+    self:AddClassBinder(ClientBinder.new("PlayerAbilityUI", require("PlayerAbilityUI")))
+    self:AddClassBinder(ClientBinder.new("PlayScreen", require("PlayScreen")))
+    self:AddClassBinder(ClientBinder.new("MainButtonsInterface", require("MainButtonsInterface")))
 
     -- character
-    self:AddClassBinder(ClassBinder.new("Character", require("CharacterClient")))
+    self:AddClassBinder(ClassBinder.new("MovementLocker", require("MovementLockerClient")))
+    self:AddClassBinder(ClassBinder.new("CharacterClient", require("CharacterClient")))
 
     -- Puzzle
     self:AddClassBinder(ClassBinder.new("PuzzleBridge", require("PuzzleBridgeClient")))

@@ -76,7 +76,7 @@ function Flamethrower:Fire()
                 self._immuneTracker[humanoid] = hitUpdate
 
                 local damage = math.random(MIN_DAMAGE, MAX_DAMAGE)
-                PlayerDamageService:DamageCharacter(humanoid.Parent, damage)
+                PlayerDamageService:DamageCharacter(humanoid.Parent, damage, "Flamethrower")
             end
         end
     end)

@@ -11,10 +11,6 @@ return {
         Helmets = {
             BasicHelmet = 1;
         };
-		Pets = {
-			StarterPet = 1;
-            OctopusPet = 1; -- will be removed pre-alpha
-		};
 
         Abilities = { -- may need to be removed pre-alpha? not sure
             LightAbility = 1;
@@ -37,11 +33,22 @@ return {
         RewardMultiple = true;
         PromptReward = true;
 
-        Money = 100000;
-        XP = 100000;
+        Money = 1000;
+        XP = 1000;
         Weapons = { -- these are for testing and need to be removed pre-alpha
             BasicSword = 1;
         };
+        Pets = {
+            OctopusPet = 1;
+        };
+    };
+
+    Developer = {
+        RewardMultiple = true;
+        PromptReward = true;
+
+        Money = 10000000;
+        XP = 10000000;
         Pets = {
             OctopusPet = 1;
         };

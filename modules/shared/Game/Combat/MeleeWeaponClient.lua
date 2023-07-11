@@ -13,11 +13,15 @@ local BaseObject = require("BaseObject")
 local Raycaster = require("Raycaster")
 local MeleeWeaponConstants = require("MeleeWeaponConstants")
 local Hitscan = require("Hitscan")
-local ClientClassBinders = require("ClientClassBinders")
+local UserSettingsClient = require("UserSettingsClient")
 local HumanoidUtils = require("HumanoidUtils")
 local AttackBase = require("AttackBase")
 local SoundPlayer = require("SoundPlayer")
 local HumanoidLockerService = require("HumanoidLockerService")
+local NPCOverlapParams = require("NPCOverlapParams")
+local GameManager = require("GameManager")
+
+local RunService = game:GetService("RunService")
 
 local ANIMATIONS = ReplicatedStorage:WaitForChild("Animations"):WaitForChild("Weapon")
 local GENERIC_ANIMATIONS = ANIMATIONS:WaitForChild("Generic")
@@ -62,12 +66,16 @@ function MeleeWeaponClient.new(obj)
         coroutine.yield()
     end
 
+    if GameManager:IsDungeon() then
+        self._overlapParams = NPCOverlapParams:Get()
+    end
+
     self._raycaster = Raycaster.new()
-    self._raycaster:Ignore(self._character)
-    self._raycaster:Ignore(workspace.Terrain)
+    self._raycaster:Ignore({self._character, workspace.Terrain})
     -- self._raycaster.Visualize = true
 
     self._humanoid = self._character:WaitForChild("Humanoid")
+    self._humanoidRootPart = self._humanoid.RootPart
 
     self._attackCooldown = 1/self._obj:GetAttribute("BaseAttackSpeed")
     self._animationType = self._obj:GetAttribute("AnimationType")
@@ -128,6 +136,40 @@ function MeleeWeaponClient:_addAttack(class, animationFolder)
 end
 
 function MeleeWeaponClient:_handleEquipped()
+    if GameManager:IsDungeon() then
+        self._maid.LockerUpdate = RunService.Heartbeat:Connect(function()
+            if not UserSettingsClient:GetSetting("AutoTarget") then
+                return
+            end
+            local rootPos = self._humanoidRootPart.Position
+            local distanceMap = {}
+            local sortedParts = {}
+            for _, part in ipairs(workspace:GetPartBoundsInRadius(rootPos, 16, self._overlapParams)) do
+                distanceMap[part] = (rootPos - part.Position).Magnitude
+                table.insert(sortedParts, part)
+            end
+
+            table.sort(sortedParts, function(a, b)
+                return distanceMap[b] > distanceMap[a]
+            end)
+
+            local humanoid = nil
+
+            for i = 1, #sortedParts do
+                local part = sortedParts[i]
+                local partPos = part.Position
+
+                local raycastResult = self._raycaster:CastTo(rootPos, partPos)
+                if raycastResult and raycastResult.Instance:IsDescendantOf(part.Parent) then
+                    humanoid = part.Parent:FindFirstChild("Humanoid")
+                    break
+                end
+            end
+
+            self:_lockHumanoid(humanoid)
+        end)
+    end
+
     self:_playAnimation(self._equipAnimation)
 end
 
@@ -140,6 +182,7 @@ function MeleeWeaponClient:_handleUnequipped()
         self._playingAnimation:Stop()
     end
 
+    self._maid.LockerUpdate = nil
     self:_lockHumanoid()
 end
 

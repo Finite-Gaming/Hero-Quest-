@@ -26,11 +26,11 @@ return {
 
     -- Equipped items
 	EquippedItems = {
-		Weapon = nil; -- itemKey
-		Armor = nil;
-        Helmet = nil;
+		Weapon = "BasicSword"; -- itemKey
+		Armor = "BasicArmor";
+        Helmet = "BasicHelmet";
 		Pet = nil;
-        Ability = nil;
+        Ability = "LightAbility";
 	};
 
 	-- Login date
@@ -49,14 +49,14 @@ return {
 
 	-- Settings
 	Settings = {
-		MusicVolume = 1; -- Volume of music
-		SFXVolume = 1; -- Volume of SFX
-		AmbienceVolume = 1; -- Volume of ambient/background noise
+		MusicVolume = 80; -- Volume of music
+		VoicelineVolume = 100; -- Volume of voicelines
+		SFXVolume = 80; -- Volume of SFX
+		AmbientVolume = 50; -- Volume of ambient noises (birds chriping, etc.)
 
-		CameraShake = true; -- Enables/disables screen shake
-		PitchCorrection = true; -- Pitch correction for various SFX (Slow)
-		ReducedParticles = false; -- Reduces particles for low-end devices
+		DisableCameraShake = false; -- Enables/disables screen shake
+		AutoTarget = true; -- Auto targets enemies with weapons
 		ReducedShadows = false; -- Whether or not to disable shadows
-		ShowOtherPlayerDamage = true; -- Indicates whether or not other player's damage numbers should be displayed
+		DisableTeamatesDamageHints = false; -- Indicates whether or not other player's damage numbers should be displayed
 	};
 }

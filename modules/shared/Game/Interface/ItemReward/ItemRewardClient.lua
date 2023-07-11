@@ -10,6 +10,7 @@ local ItemRewardConstants = require("ItemRewardConstants")
 local ItemConstants = require("ItemConstants")
 local Network = require("Network")
 local PopulateItemFrame = require("PopulateItemFrame")
+local SoundPlayer = require("SoundPlayer")
 
 local Players = game:GetService("Players")
 
@@ -62,6 +63,7 @@ function ItemRewardClient:_processQueue()
 
     self:_populate(keyTable)
     self._screenGui.Enabled = true
+    SoundPlayer:PlaySound("ItemReward") 
 end
 
 function ItemRewardClient:_bindToClose(button)

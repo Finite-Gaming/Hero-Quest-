@@ -3,13 +3,18 @@
 local DATA = {
     a_easy = {
         Floors = 1; -- TODO
-        MaxLevel = 15; -- placeholder?
         PlayTime = 20;
         PlayIndex = 1;
 
         DisplayName = "Haunted Castle";
 		PlaceId = 9678777751;
 		MaxPlayers = 50;
+
+        FloorData = {
+            [1] = {
+                BossName = "Warden";
+            };
+        };
 
         ProgressionVoicelines = { -- keep in mind, these are sound effects, not sound groups
             Spawned = {

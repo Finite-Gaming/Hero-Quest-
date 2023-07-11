@@ -14,7 +14,7 @@ local AnimationTrack = require("AnimationTrack")
 local WeldUtils = require("WeldUtils")
 local Hitscan = require("Hitscan")
 local HumanoidUtils = require("HumanoidUtils")
-local DamageFeedback = require("DamageFeedback")
+local ProgressionHelper = require("ProgressionHelper")
 local ServerClassBinders = require("ServerClassBinders")
 local Signal = require("Signal")
 local Maid = require("Maid")
@@ -29,6 +29,7 @@ local PlayerDamageService = require("PlayerDamageService")
 local RandomRange = require("RandomRange")
 local CharacterOverlapParams = require("CharacterOverlapParams")
 local CameraShakeService = require("CameraShakeService")
+local QuestDataUtil = require("QuestDataUtil")
 
 local DEBUG_ENABLED = false -- Setting this to true will show debug ray parts, and display the NPC's FOV
 
@@ -83,6 +84,8 @@ local ENEMY_SETTINGS = {
 
         MinDamage = 18;
         MaxDamage = 42;
+
+        IsBoss = true;
 
         Attacks = {
             {
@@ -211,7 +214,6 @@ function NPC.new(obj)
             self._maid:AddTask(attackClass.ShakeCamera:Connect(function(intensity)
                 local maxDist = 16
                 local weaponPos = weapon.Position
-                warn(#workspace:GetPartBoundsInRadius(weaponPos, maxDist, CharacterOverlapParams:Get()))
                 for _, rootPart in ipairs(workspace:GetPartBoundsInRadius(
                     weaponPos,
                     maxDist,
@@ -224,8 +226,6 @@ function NPC.new(obj)
                     end
                     local distance = (rootPart.Position - weaponPos).Magnitude
                     local shakeStrength = intensity * (1 - ((math.clamp(distance, 0.1, maxDist)/maxDist))) * 2
-                    warn(distance)
-                    warn(shakeStrength)
                     CameraShakeService:Shake(player, shakeStrength)
                 end
             end))
@@ -358,13 +358,18 @@ function NPC.new(obj)
 
     self._maid:AddTask(self._humanoid.Died:Connect(function()
         EffectPlayerService:PlayCustom("EnemyDeathEffect", "new", self._humanoidRootPart.Position)
+
+        local deathData = self:_exportDeathData()
+        for player, _ in pairs(self.DamageTracker:GetDamageTags()) do
+            QuestDataUtil.increment(player, "NPCDeath", deathData)
+        end
         self.Died:Fire()
         self._obj:Destroy()
     end))
 
     self._maid:AddTask(self.Died:Connect(function()
         for player, damage in pairs(self.DamageTracker:GetDamageMap()) do
-            UserData:AwardCurrency(player.UserId, "XP", math.round(damage * 2.4))
+            UserData:AwardCurrency(player.UserId, "XP", math.round(damage * 1.4))
         end
         if self._settings.SpecialReward then
             for _, player in ipairs(Players:GetPlayers()) do
@@ -377,10 +382,25 @@ function NPC.new(obj)
     --     self._animations.Idle:Play()
     -- end
 
+    for _, part in ipairs(self._obj:GetChildren()) do
+        if not part:IsA("BasePart") then
+            continue
+        end
+
+        part:SetNetworkOwner(nil)
+    end
     self._waypoint = self:_getClosestNode()
     self:_startPatrol()
 
     return self
+end
+
+function NPC:_exportDeathData()
+    return {
+        Name = self._obj.Name;
+        DamageTags = self.DamageTracker:GetDamageTags();
+        DamageMap = self.DamageTracker:GetDamageMap();
+    }
 end
 
 function NPC:GetTarget()
@@ -405,14 +425,12 @@ function NPC:_handleHit(raycastResult)
 
         local character = humanoid.Parent
         local damage = math.random(self._settings.MinDamage, self._settings.MaxDamage)
-        PlayerDamageService:DamageCharacter(character, damage)
+        PlayerDamageService:DamageCharacter(character, damage, self._obj.Name)
 
         local player = Players[character.Name]
         if player and humanoid.Health <= 0 then
             self.KilledPlayer:Fire(player)
         end
-
-        DamageFeedback:SendFeedback(humanoid, damage, raycastResult.Position)
     end
 end
 
@@ -587,7 +605,6 @@ function NPC:_startPatrol()
             local rayResult = self._raycaster:Cast(self._humanoidRootPart.Position, (rootPos - self._humanoidRootPart.Position))
             if rayResult and rayResult.Instance:IsDescendantOf(character) then
                 self:_stopPatrol()
-                self.StateChanged:Fire("Chase")
                 if self._pursuing then
                     return
                 end
@@ -603,6 +620,28 @@ function NPC:_updateAlignment(rootPart)
     self._alignOrientation.CFrame = CFrame.lookAt(posA, posB)
 end
 
+function NPC:_getAdjacentPoint(position)
+    local rootPos = self._humanoidRootPart.Position
+    local nDir = (position - rootPos).Unit
+    nDir = Vector3.new(nDir.X, 0, nDir.Z)
+
+    local sortedParts = {}
+    for i, point in ipairs(self._patrolPoints) do
+        local pointPos = point.WorldPosition
+        local dist = math.sqrt((pointPos.X - rootPos.X)^2 + (pointPos.Z - rootPos.Z)^2)
+        local aNDir = (position - pointPos).Unit
+        sortedParts[i] = {dist, nDir:Dot(Vector3.new(aNDir.X, 0, aNDir.Z)), point}
+    end
+
+    table.sort(sortedParts, function(a, b)
+        return a[1] > b[1] and a[2] > b[2]
+    end)
+
+    local chosen = sortedParts[1][3]
+    sortedParts = nil
+    return chosen
+end
+
 function NPC:_startPursuit(character)
     self._target = character
     self._pursuing = true
@@ -615,6 +654,23 @@ function NPC:_startPursuit(character)
         return
     end
 
+    if self._animations.Scared then
+        if ProgressionHelper:IsLevelMaxed() then
+            self.StateChanged:Fire("Scared")
+            local rootPart = humanoid.RootPart
+            if not rootPart then
+                self:_stopPursuit()
+                return
+            end
+
+            local walkToPoint = self:_getAdjacentPoint(rootPart.Position)
+            self:_createWalkPath(self:_getClosestNode(), walkToPoint, self._animations.Run)
+            self._animations.Scared:Play()
+            return
+        end
+    end
+
+    self.StateChanged:Fire("Chase")
     self:_updateAlignment(humanoid.RootPart)
     self._alignOrientation.Enabled = true
 
@@ -717,24 +773,15 @@ function NPC:_stopPatrol()
     self._maid.PatrolUpdate = nil
 end
 
-function NPC:_randomPath()
-    local point = self:_getRandomPoint()
-    if not point then
-        warn("[NPC] - Failed to get pathfinding point")
-        return
-    end
-
-    local oldWaypoint = self._waypoint
-    self._waypoint = point
-    self._waypoints = self:_pathfind(oldWaypoint, self._waypoint)
+function NPC:_createWalkPath(from, to, animationOverride)
+    self._waypoints = self:_pathfind(from, to)
     local tries = 0
     while not self._waypoints do
         if tries == 10 then
             warn("[NPC] - Failed to pathfind.")
             return
         end
-        self._waypoint = point
-        self._waypoints = self:_pathfind(oldWaypoint, self._waypoint)
+        self._waypoints = self:_pathfind(from, to)
 
         tries += 1
     end
@@ -743,7 +790,7 @@ function NPC:_randomPath()
         self:_buildDebugPath()
     end
 
-    self._animations.Walk:Play()
+    (animationOverride or self._animations.Walk):Play()
     self:StartWalkEffects()
 
     for _, nextPoint in ipairs(self._waypoints) do
@@ -756,8 +803,19 @@ function NPC:_randomPath()
         task.wait(walkTime - (1/5))
     end
 
-    self._animations.Walk:Stop()
-    self:StopWalkEffects()
+    (animationOverride or self._animations.Walk):Stop()
+end
+
+function NPC:_randomPath()
+    local point = self:_getRandomPoint()
+    if not point then
+        warn("[NPC] - Failed to get pathfinding point")
+        return
+    end
+
+    local oldWaypoint = self._waypoint
+    self._waypoint = point
+    self:_createWalkPath(oldWaypoint, self._waypoint)
 end
 
 function NPC:StartWalkEffects()

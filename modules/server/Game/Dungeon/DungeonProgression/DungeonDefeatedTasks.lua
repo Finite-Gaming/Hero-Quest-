@@ -17,6 +17,7 @@ local DungeonDefeatedTasks = {}
 
 function DungeonDefeatedTasks:Run()
     local dungeonTag = workspace:GetAttribute("DungeonTag")
+    workspace:SetAttribute("DungeonDefeated", true)
     -- edit data prior to teleporting for consistency
     for _, player in ipairs(Players:GetPlayers()) do
         local profile = UserData:GetProfile(player.UserId) -- should realistically be cached by now, if not, funky things happened

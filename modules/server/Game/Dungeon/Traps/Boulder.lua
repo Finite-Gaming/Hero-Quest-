@@ -8,6 +8,7 @@ local BaseObject = require("BaseObject")
 local BoulderConstants = require("BoulderConstants")
 local PlayerDamageService = require("PlayerDamageService")
 local SoundPlayerService = require("SoundPlayerService")
+local ParametricCurve = require("ParametricCurve");
 
 local RunService = game:GetService("RunService")
 
@@ -31,16 +32,26 @@ function Boulder.new(obj)
     self._rollSpeed = self._obj:GetAttribute("RollSpeed")
 
     self._boulder = self._obj.Boulder
-    self._endPoint = self._obj.EndPoint
     self._sound = self._boulder:FindFirstChildOfClass("Sound")
 
     self._diameter = self._boulder.Size.Y
+    self._travelTime = self._obj:GetAttribute("TravelTime")
+    self._rollInTime = self._obj:GetAttribute("RollIn") or 0
 
-    self._startPosition = self._boulder.Position
-    self._endPosition = self._endPoint.Position
-    self._initialDir = (self._endPosition - self._startPosition).Unit
+    self._sortedPoints = self._obj.TravelPoints:GetChildren()
+    table.sort(self._sortedPoints, function(a, b)
+        return tonumber(a.Name) < tonumber(b.Name)
+    end)
+    for index, part in ipairs(self._sortedPoints) do
+        self:_handleDebugPart(part)
+        self._sortedPoints[index] = part.Position
+    end
+    self._curve = ParametricCurve.new(self._sortedPoints, 1000)
 
-    for _, part in ipairs({self._obj.Trigger, self._endPoint}) do
+    self._startPosition = self._sortedPoints[1]
+    self._endPosition = self._sortedPoints[#self._sortedPoints]
+
+    for _, part in ipairs(self._obj.Triggers:GetChildren()) do
         self:_handleDebugPart(part)
     end
 
@@ -70,7 +81,7 @@ function Boulder:_handleHit(player)
         return
     end
 
-    PlayerDamageService:DamagePlayer(player, 128, 0.5, self._boulder, 256, self._diameter + 12)
+    PlayerDamageService:DamagePlayer(player, 128, "Boulder", 0.5, self._boulder, 256, self._diameter + 12)
     SoundPlayerService:PlaySound("Body_Impact_1")
 end
 
@@ -79,30 +90,40 @@ function Boulder:Trigger()
         return
     end
     self._triggered = true
+    -- self._curve:Visualize()
 
-    self._lastUpdate = os.clock()
-    self:_setSoundState(true)
-    self._maid.Update = RunService.Stepped:Connect(function()
+    self._startTime = os.clock()
+    self._maid.Update = RunService.Stepped:Connect(function(deltaTime)
         local updateTime = os.clock()
-        local deltaTime = updateTime - self._lastUpdate
-        self._lastUpdate = updateTime
+        local elapsedTime = (updateTime - self._startTime)
+        local plottedDelta = math.clamp(elapsedTime/self._travelTime, 0, 1)
 
         local prevCFrame = self._boulder.CFrame
-        local direction = (self._endPosition - prevCFrame.Position).Unit
-        if direction:Dot(self._initialDir) < 0.9 then
-            self._maid.Update = nil
-            self:_setSoundState(false)
-            return
+        local direction = (self._curve:GetPoint(math.clamp(plottedDelta + deltaTime, 0, 1)) - prevCFrame.Position).Unit
+
+        local boulderVelocity = direction * deltaTime * 40
+        local newCFrame = CFrame.new(self._curve:GetPoint(plottedDelta))
+        if elapsedTime >= self._rollInTime then
+            if not self._rolling then
+                self._rolling = true
+                self:_setSoundState(true)
+            end
+            newCFrame *= CFrame.Angles(boulderVelocity.Z/9, 0, -boulderVelocity.X/9)
         end
 
-        local boulderVelocity = direction * deltaTime * self._rollSpeed
-        local newCFrame = (prevCFrame + boulderVelocity) * CFrame.Angles(boulderVelocity.Z/9, 0, -boulderVelocity.X/9)
         self._boulder.CFrame = newCFrame
+
+        if plottedDelta == 1 then
+            self:Reset()
+            self._maid.Update = nil
+        end
     end)
 end
 
 function Boulder:Reset()
-    error("Not implemented")
+    self._triggered = false
+    self:_setSoundState(false)
+    self._boulder.CFrame = CFrame.new(self._startPosition)
 end
 
 return Boulder

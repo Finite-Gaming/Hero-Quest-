@@ -18,6 +18,7 @@ StompAttack.__index = StompAttack
 function StompAttack.new(npc)
     local self = setmetatable(AttackBase.new(npc, npc._obj.Animations.Attacks.Stomp), StompAttack)
 
+    self._npc = npc
     self._raycaster = Raycaster.new()
     self._raycaster:Ignore(npc._obj)
 
@@ -70,6 +71,7 @@ function StompAttack.new(npc)
                 PlayerDamageService:DamageCharacter(
                     character,
                     self._damage,
+                    self._npc._obj.Name,
                     0,
                     effectPosition,
                     512,

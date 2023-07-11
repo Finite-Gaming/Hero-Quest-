@@ -8,6 +8,7 @@ local BaseObject = require("BaseObject")
 local EffectPlayerClient = require("EffectPlayerClient")
 local AnimationTrack = require("AnimationTrack")
 local WeldUtils = require("WeldUtils")
+local SoundPlayer = require("SoundPlayer")
 
 local LevelUpEffect = setmetatable({}, BaseObject)
 LevelUpEffect.__index = LevelUpEffect
@@ -29,9 +30,11 @@ function LevelUpEffect.new(character)
     end
 
     local effectPart = EffectPlayerClient:PlayEffect("LevelUp", Vector3.zero)
+    effectPart.CanCollide = false
     effectPart.Anchored = false
     WeldUtils.weld(rootPart, effectPart, CFrame.new(0, (-rootPart.Size.Y/2) - humanoid.HipHeight + 0.3, 0))
 
+    SoundPlayer:PlaySound("LevelUp")
     local animationTrack = self._maid:AddTask(AnimationTrack.new("rbxassetid://13138845615", humanoid))
     animationTrack.Priority = Enum.AnimationPriority.Action4
     self._maid:AddTask(animationTrack.Stopped:Connect(function()

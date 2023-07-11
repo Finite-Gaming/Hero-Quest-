@@ -8,14 +8,17 @@ local LobbyInitClient = {}
 
 function LobbyInitClient:Init()
     require("UserDataClient"):Init()
+    require("UserSettingsClient"):Init()
 
     require("GuiTemplateProvider"):Init()
+    require("PartyServiceClient"):Init()
     require("ClientTemplateProvider"):Init()
     require("TotalEnemiesKilledClient"):Init()
     require("ClientClassBinders"):Init()
+    require("CharacterServiceClient"):Init()
 
     require("ContentHelper"):Init()
-    -- require("IntroductionSceneClient"):Init()
+    require("IntroductionSceneClient"):Init()
     require("LoadingScreen"):Init()
 
     require("SoundModifier"):Init()
@@ -30,7 +33,6 @@ function LobbyInitClient:Init()
     require("BottomCaptionService"):Init()
     require("NotificationService"):Init()
 
-    require("PartyServiceClient"):Init()
     require("InviteClient"):Init()
 
     require("ClientZones"):Init()

@@ -46,6 +46,7 @@ function PlayerInfoDisplay.new(character)
     self._maid:AddTask(Players.LocalPlayer:GetAttributeChangedSignal("XP"):Connect(function()
         local xp = Players.LocalPlayer:GetAttribute("XP")
         self:_updatePortrait(xp)
+        self:_updateName(xp)
         local currentLevel = PlayerLevelCalculator:GetLevelFromXP(xp)
         local levelBaseXP = PlayerLevelCalculator:GetXPFromLevel(currentLevel)
         self:_updateSlider(self._experienceBar, xp, PlayerLevelCalculator:GetXPFromLevel(currentLevel + 1), levelBaseXP)
@@ -53,6 +54,7 @@ function PlayerInfoDisplay.new(character)
     task.spawn(function()
         local xp = UserDataClient:GetExperience()
         self:_updatePortrait(xp)
+        self:_updateName(xp)
         local currentLevel = PlayerLevelCalculator:GetLevelFromXP(xp)
         local levelBaseXP = PlayerLevelCalculator:GetXPFromLevel(currentLevel)
         self:_updateSlider(self._experienceBar, xp, PlayerLevelCalculator:GetXPFromLevel(currentLevel + 1), levelBaseXP)
@@ -67,6 +69,11 @@ function PlayerInfoDisplay.new(character)
     end)
 
     return self
+end
+
+function PlayerInfoDisplay:_updateName(xp)
+    xp = xp or UserDataClient:GetExperience()
+    self._nameLabel.Text = ("%s (Lvl %i)"):format(Players.LocalPlayer.Name, PlayerLevelCalculator:GetLevelFromXP(xp))
 end
 
 function PlayerInfoDisplay:_updatePortrait(xp)

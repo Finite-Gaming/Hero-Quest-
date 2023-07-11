@@ -27,6 +27,8 @@ function DungeonInit:Init()
 
     require("EffectPlayerService"):Init()
     require("ApplyImpulse"):Init()
+    require("PhaseInAnimator"):Init()
+    require("QuestUpdater"):Init()
 
     require("ServerTemplateProvider"):Init()
     require("NPCSpawner"):Init()

@@ -141,6 +141,7 @@ function PartyService:Init()
             end, SEVEN_DAYS_IN_SECONDS)
 
             self._remoteEvent:FireClient(player, "UpdateList", {player.UserId})
+            self._remoteEvent:FireClient(player, "Notification", "Successfully created party", "Success")
         elseif action == "Invite" then
             local partyGUID = playerData.PartyGUID
             if not partyGUID then
@@ -379,7 +380,7 @@ function PartyService:Init()
         end
     end)
 
-    function self._remoteFunction:OnServerInvoke(player, action)
+    self._remoteFunction.OnServerInvoke = function(player, action)
         local playerData = FunctionUtils.rCallAPIAsync(self._playerMap, "GetAsync", USER_ID_FORMAT:format(player.UserId))
         if not playerData then
             warn("[PartyService] - Failed to get playerData")
@@ -400,6 +401,8 @@ function PartyService:Init()
             if partyData then
                 return partyData.Players
             end
+        elseif action == "GetFriendsOnline" then
+            return self:GetFriendsOnline(player.UserId)
         end
     end
 
@@ -418,6 +421,42 @@ function PartyService:Init()
             self:_removePlayer(player)
         end
     end)
+end
+
+function PartyService:GetFriendsOnline(userId)
+    local friendsPlaying = {}
+    local totalPlaying = 0
+    local onlineFriends = 0
+
+    local friendPages = Players:GetFriendsAsync(userId)
+
+    while true do
+        for _, pageData in ipairs(friendPages:GetCurrentPage()) do
+            if pageData.IsOnline then
+                onlineFriends += 1
+                task.spawn(function()
+                    local activePlayer = FunctionUtils.rCallAPIAsync(self._playerMap, "GetAsync", USER_ID_FORMAT:format(pageData.Id))
+                    if not activePlayer then
+                        onlineFriends -= 1
+                    else
+                        totalPlaying += 1
+                        friendsPlaying[pageData.Username] = true
+                    end
+                end)
+            end
+        end
+
+        if friendPages.IsFinished then
+            break
+        end
+        friendPages:AdvanceToNextPageAsync()
+    end
+
+    while totalPlaying ~= onlineFriends do
+        task.wait()
+    end
+
+    return friendsPlaying
 end
 
 function PartyService:_fireClientByUserId(userId, ...)

@@ -9,7 +9,6 @@ local require = require(ReplicatedStorage:WaitForChild("Compliance"))
 local WeldUtils = require("WeldUtils")
 local AssemblyUtils = require("AssemblyUtils")
 local ModelUtils = require("ModelUtils")
-local ItemConstants = require("ItemConstants")
 
 local RunService = game:GetService("RunService")
 
@@ -24,31 +23,16 @@ local BASE_PART_NAMES = {
 
 local ArmorApplier = {}
 
-function ArmorApplier:_applyStats(character, setData, multiplier)
+function ArmorApplier:UpdateStats(...)
     if not RunService:IsServer() then
         return
     end
 
-    local humanoid = character:FindFirstChild("Humanoid")
-    if humanoid then
-        humanoid.MaxHealth += (setData.Health or 0) * (multiplier or 1)
-        humanoid.WalkSpeed += (setData.Speed or 0) * (multiplier or 1)
-
-        local spawnTime = character:GetAttribute("SpawnTime")
-        if os.clock() - 3 - spawnTime < 2 then
-            humanoid.Health = humanoid.MaxHealth
-        end
-    else
-        warn("[ArmorApplier] - No humanoid!")
-    end
+    require("CharacterHelper"):UpdateStats(...)
 end
 
 function ArmorApplier:ClearArmor(character)
-    local armorSet = character:GetAttribute("Armor")
-    if armorSet then
-        self:_applyStats(character, ItemConstants.Armors[armorSet], -1)
-    end
-
+    self:UpdateStats(character)
     character:SetAttribute("Armor", nil)
 	for _, armorPiece in ipairs(character:GetDescendants()) do
 		if armorPiece:GetAttribute("ArmorPiece") then
@@ -58,10 +42,7 @@ function ArmorApplier:ClearArmor(character)
 end
 
 function ArmorApplier:ClearHelmet(character)
-    local helmet = character:GetAttribute("Helmet")
-    if helmet then
-        self:_applyStats(character, ItemConstants.Helmets[helmet], -1)
-    end
+    self:UpdateStats(character)
 
     character:SetAttribute("Helmet", nil)
     for _, child in ipairs(character.Head:GetChildren()) do
@@ -78,7 +59,7 @@ function ArmorApplier:ApplyArmor(character, armorSet, setKey)
 
     local armorModel = assert(ArmorSets:FindFirstChild(armorSet)):Clone()
     character:SetAttribute("Armor", armorSet)
-    self:_applyStats(character, ItemConstants.Armors[armorSet])
+    self:UpdateStats(character)
 
     for _, armorPiece in ipairs(armorModel:GetChildren()) do
         local limbPiece = self:_applyToLimb(character, armorPiece)
@@ -96,7 +77,7 @@ function ArmorApplier:ApplyHelmet(character, helmetName, setKey)
 
     local helmetModel = assert(Helmets:FindFirstChild(helmetName)):Clone()
     character:SetAttribute("Helmet", helmetName)
-    self:_applyStats(character, ItemConstants.Helmets[helmetName])
+    self:UpdateStats(character)
 
     local limbPiece = self:_applyToLimb(character, helmetModel.Head)
     limbPiece:SetAttribute("HelmetPiece", true)
@@ -112,6 +93,7 @@ function ArmorApplier:_applyToLimb(character, armorPiece)
         return
     end
 
+    armorPiece:ScaleTo(character:GetScale())
     local primaryPart = if armorPiece:IsA("Model") then armorPiece.PrimaryPart else armorPiece
     if not primaryPart then
         for _, partName in ipairs(BASE_PART_NAMES) do

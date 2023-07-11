@@ -29,7 +29,7 @@ function PlayerAbility.new(obj)
         end
     end))
 
-    local equippedAbility = UserDataService:GetEquipped(self._player, "Ability") or "LightAbility" -- replace blah blah
+    local equippedAbility = UserDataService:GetEquipped(self._player, "Ability")
     if equippedAbility then
         self:UpdateAbility(equippedAbility)
     end
@@ -50,6 +50,9 @@ end
 function PlayerAbility:UpdateAbility(abilityName)
     local abilityData = PlayerAbilityData[abilityName]
     if not abilityData then
+        self._currentAbility = nil
+        self._abilityClass:Unbind(self._obj)
+        self._remoteEvent:FireClient(self._player, "UpdateAbility", nil)
         return
     end
 

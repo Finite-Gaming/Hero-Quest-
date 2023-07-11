@@ -10,11 +10,15 @@ local BaseObject = require("BaseObject")
 local MeleeWeaponConstants = require("MeleeWeaponConstants")
 local HumanoidUtils = require("HumanoidUtils")
 local PlayerDamageService = require("PlayerDamageService")
+local ActionHistory = require("ActionHistory")
+local UserDataService = require("UserDataService")
 
 local ANIMATIONS = ReplicatedStorage:WaitForChild("Animations"):WaitForChild("Weapon")
 local GENERIC_ANIMATIONS = ANIMATIONS:WaitForChild("Generic")
 local ONE_HANDED_ANIMATIONS = ANIMATIONS:WaitForChild("OneHanded")
 local TWO_HANDED_ANIMATIONS = ANIMATIONS:WaitForChild("TwoHanded")
+
+local BASE_SCALE = 1
 
 local MeleeWeapon = setmetatable({}, BaseObject)
 MeleeWeapon.__index = MeleeWeapon
@@ -81,7 +85,8 @@ function MeleeWeapon.new(obj)
 end
 
 function MeleeWeapon:_getDamage()
-    return math.random(self._damageRange.Min, self._damageRange.Max)
+    local multiplier = 1 + math.clamp(UserDataService:GetUpgradeLevel(self._player, "Damage")/100, 0, 100)
+    return math.random(self._damageRange.Min, self._damageRange.Max) * multiplier
 end
 
 function MeleeWeapon:_handleHit(instance, position)
@@ -99,7 +104,8 @@ function MeleeWeapon:_handleHit(instance, position)
         end
         local damage = self:_getDamage()
 
-        PlayerDamageService:DamageCharacter(humanoid.Parent, damage, nil, self._player)
+        ActionHistory:MarkWeaponUsed(self._player, self._obj.Name)
+        PlayerDamageService:DamageCharacter(humanoid.Parent, damage, self._obj.Name, nil, self._player)
     end
 end
 
@@ -118,6 +124,9 @@ end
 
 function MeleeWeapon:_handleEquipped()
     self._equipped = true
+
+    local upgradeLevel = UserDataService:GetUpgradeLevel(self._player, "Damage")
+    self._obj:ScaleTo(BASE_SCALE + (BASE_SCALE * (upgradeLevel/150))) -- TODO: change this?
 
     self._character.Animate.run:FindFirstChildOfClass("Animation").AnimationId = (self._animationFolder:FindFirstChild("Run") or GENERIC_ANIMATIONS.Run).AnimationId
 end

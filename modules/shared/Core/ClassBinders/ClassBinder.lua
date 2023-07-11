@@ -5,18 +5,20 @@
 local require = require(game:GetService("ReplicatedStorage"):WaitForChild("Compliance"))
 
 local CollectionService = game:GetService("CollectionService")
+local Players = game:GetService("Players")
 
 local Signal = require("Signal")
 
 local ClassBinder = {}
 ClassBinder.__index = ClassBinder
 
-function ClassBinder.new(name, class)
+function ClassBinder.new(name, class, localBinder)
     local self = setmetatable({}, ClassBinder)
     self._name = name
     self._class = class
     self._boundInstances = {}
     self._processingInstances = {} -- Cope with yielding constructors
+    self._localBinder = localBinder
 
     self.InstanceAdded = Signal.new()
     self.InstanceRemoving = Signal.new()
@@ -47,6 +49,14 @@ function ClassBinder:_bind(instance)
     local oldClass = self._boundInstances[instance]
     if oldClass then
         return oldClass
+    end
+    if not self._class then
+        return
+    end
+    if self._localBinder then
+        if instance.Name ~= Players.LocalPlayer.Name then
+            return
+        end
     end
 
     if self._processingInstances[instance] then
@@ -86,7 +96,7 @@ function ClassBinder:Get(instance)
     return self._boundInstances[instance]
 end
 
-function ClassBinder:GetAsync(instance)
+function ClassBinder:GetAsync(instance, timeout)
     local currentThread = coroutine.running()
 
     local class = self:Get(instance)
@@ -94,12 +104,24 @@ function ClassBinder:GetAsync(instance)
         return class
     end
 
+    local timeoutThread = nil
     local once; once = self.InstanceAdded:Connect(function(inst)
         if inst == instance then
             coroutine.resume(currentThread, self:Get(inst))
             once:Disconnect()
+
+            if timeoutThread then
+                task.cancel(timeoutThread)
+            end
         end
     end)
+
+    if timeout and timeout ~= 0 then
+        timeoutThread = task.delay(timeout, function()
+            coroutine.resume(currentThread, nil)
+            once:Disconnect()
+        end)
+    end
 
     return coroutine.yield()
 end

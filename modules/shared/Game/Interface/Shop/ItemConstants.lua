@@ -40,9 +40,6 @@ return {
         };
     };
     Pets = {
-        StarterPet = {
-            DisplayName = "Starter Pet";
-        };
         OctopusPet = {
             Buyable = true;
             LayoutOrder = 1;
@@ -59,7 +56,7 @@ return {
         -- Basic/default armor
         BasicArmor = {
             DisplayName = "Basic Armor";
-            Health = 40;
+            Health = 0.4;
             Speed = -1;
             Rarity = "Common";
 
@@ -72,9 +69,10 @@ return {
         AlphaArmor = {
             LayoutOrder = 1;
             DisplayName = "Steampunk Armor";
-            Health = 50;
+            Health = 0.6;
             Speed = -1;
             Rarity = "Legendary";
+            Cursed = true;
 
             ViewportData = {
                 YAngle = 150;
@@ -84,7 +82,7 @@ return {
     Helmets = {
         BasicHelmet = {
             DisplayName = "Basic Helmet";
-            Health = 20;
+            Health = 0.2;
             Speed = -0.5;
             Rarity = "Common";
 
@@ -96,9 +94,10 @@ return {
         AlphaHelmet = {
             LayoutOrder = 1;
             DisplayName = "Steampunk Helmet";
-            Health = 30;
+            Health = 0.4;
             Speed = -0.5;
             Rarity = "Legendary";
+            Cursed = true;
 
             ViewportData = {
                 YAngle = 150;

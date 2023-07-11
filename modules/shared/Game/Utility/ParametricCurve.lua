@@ -1,3 +1,14 @@
+---
+-- @classmod ParametricCurve
+-- @author
+
+local require = require(game:GetService("ReplicatedStorage"):WaitForChild("Compliance"))
+
+local DebugVisualizer = require("DebugVisualizer")
+
+local ParametricCurve = {}
+ParametricCurve.__index = ParametricCurve
+
 local function catmullRom(p0, p1, p2, p3, t)
 	local t2 = t * t
 	local t3 = t2 * t
@@ -10,42 +21,16 @@ local function catmullRom(p0, p1, p2, p3, t)
 	return 0.5 * (p0 * a + p1 * b + p2 * c + p3 * d)
 end
 
--- Main function to create a parametric curve in 3D space
-function createParametricCurve(points, numSegments)
-	assert(#points >= 4, "At least 4 points are required")
-
-	-- Duplicate the first and last points to ensure triple knots
-	local paddedPoints = {points[1], points[1]}
-	for i, v in ipairs(points) do
-		paddedPoints[i + 2] = v
+local function calculateCurveLength(points)
+	local length = 0
+	for i = 1, #points - 1 do
+		local p0 = points[i]
+		local p1 = points[i + 1]
+		local segmentLength = (p1 - p0).Magnitude
+		length = length + segmentLength
 	end
-	table.insert(paddedPoints, points[#points])
-	table.insert(paddedPoints, points[#points])
-
-	local curvePoints = {}
-	for i = 1, #paddedPoints - 3 do
-		for t = 0, 1, 1 / numSegments do
-			local p = catmullRom(paddedPoints[i], paddedPoints[i + 1], paddedPoints[i + 2], paddedPoints[i + 3], t)
-			table.insert(curvePoints, p)
-		end
-	end
-
-	return function(t)
-		local ind = math.clamp(math.round(#curvePoints * t), 1, #curvePoints)
-		return curvePoints[ind]
-	end
+	return length
 end
-
----
--- @classmod ParametricCurve
--- @author
-
-local require = require(game:GetService("ReplicatedStorage"):WaitForChild("Compliance"))
-
-local DebugVisualizer = require("DebugVisualizer")
-
-local ParametricCurve = {}
-ParametricCurve.__index = ParametricCurve
 
 function ParametricCurve.new(points, steps)
     local self = setmetatable({}, ParametricCurve)
@@ -57,12 +42,29 @@ function ParametricCurve.new(points, steps)
 	table.insert(self._paddedPoints, points[#points])
 
 	self._curvePoints = {}
-	for i = 1, #self._paddedPoints - 3 do
-		for t = 0, 1, 1 / steps do
-			local p = catmullRom(self._paddedPoints[i], self._paddedPoints[i + 1], self._paddedPoints[i + 2], self._paddedPoints[i + 3], t)
-			table.insert(self._curvePoints, p)
+	local curveLength = calculateCurveLength(self._paddedPoints)
+	local stepSize = curveLength / steps
+
+	local t = 0
+	for i = 1, steps do
+		local lengthPassed = stepSize * i
+		while lengthPassed > curveLength do
+			lengthPassed = lengthPassed - curveLength
 		end
+
+		local segmentIndex = 1
+		local segmentLength = (self._paddedPoints[segmentIndex + 1] - self._paddedPoints[segmentIndex]).Magnitude
+		while lengthPassed > segmentLength do
+			lengthPassed = lengthPassed - segmentLength
+			segmentIndex = segmentIndex + 1
+			segmentLength = (self._paddedPoints[segmentIndex + 1] - self._paddedPoints[segmentIndex]).Magnitude
+		end
+
+		local tSegment = lengthPassed / segmentLength
+		local p = catmullRom(self._paddedPoints[segmentIndex - 1], self._paddedPoints[segmentIndex], self._paddedPoints[segmentIndex + 1], self._paddedPoints[segmentIndex + 2], tSegment)
+		table.insert(self._curvePoints, p)
 	end
+
     self._totalPoints = #self._curvePoints
 
     return self

@@ -1,10 +1,7 @@
 --!strict
 local require = require(game:GetService("ReplicatedStorage"):WaitForChild("Compliance"))
 
-local ServerScriptService = game:GetService("ServerScriptService")
 local Players = game:GetService("Players")
-local HttpService = game:GetService("HttpService")
--- local skins = ServerScriptService:WaitForChild("Skins")
 
 local ItemConstants = require("ItemConstants")
 local Signal = require("Signal")
@@ -14,25 +11,41 @@ local ItemRewardConstants = require("ItemRewardConstants")
 local SpecialRewards = require("SpecialRewards")
 local TableUtils = require("TableUtils")
 local GameManager = require("GameManager")
+local DailyQuestData = require("DailyQuestData")
+local PlayerLevelCalculator = require("PlayerLevelCalculator")
+local DungeonData = require("DungeonData")
+local UserDataService = require("UserDataService")
 
 -- ProfileService (data storage)
 local ProfileService = require("ProfileService")
 local PROFILE_KEY_FORMAT = "USER_%d"
 
 local ProfileStore = ProfileService.GetProfileStore(
-	"UserData_TEST_10",
+	"UserData_TEST_40",
 	DefaultData
 )
 
 local UserData = {
 	UserProfiles = {};
     _rewardRemoteEvent = Network:GetRemoteEvent(ItemRewardConstants.REMOTE_EVENT_NAME);
+	_userThreads = {};
 }
 
 local profileReady = Instance.new("BindableEvent")
 
 local loggedIn = Instance.new("BindableEvent")
 UserData.LoggedIn = Signal.new()
+
+local function deepCopy(original)
+	local copy = {}
+	for k, v in pairs(original) do
+		if type(v) == "table" then
+			v = deepCopy(v)
+		end
+		copy[k] = v
+	end
+	return copy
+end
 
 -- Checks if a user profile exists and returns it without creating any new one
 function UserData:FindLoadedProfile(userId: number)
@@ -315,6 +328,83 @@ function UserData:TakeCurrency(userId: number, currencyType: string, amount: num
     end
 end
 
+function UserData:MarkQuestFinished(userId, quest)
+	local threads = self._userThreads[userId]
+	if not threads then
+		threads = {}
+		self._userThreads[userId] = threads
+	end
+
+	threads[quest.DataKey] = task.delay((quest.CompletedTime + DAY) - os.time(), function()
+		threads[quest.DataKey] = nil
+		self:AppendQuest(userId, quest.Difficulty)
+
+		require("QuestUpdater"):Update(self:FindPlayer(userId))
+	end)
+end
+
+function UserData:AppendQuest(userId, difficulty)
+	local profile = UserData:WaitForProfile(userId)
+	local data = profile.Data
+	local upgradeData = data.UpgradeData
+	local questData = data.QuestData
+	if not questData then
+		questData = {}
+		data.QuestData = questData
+	end
+
+	local classAlignment = PlayerLevelCalculator:GetClassAlignment(upgradeData)
+	local quest = nil
+	if classAlignment == "Living Legend" or classAlignment == "Newbie" then
+		quest = deepCopy(DailyQuestData[TableUtils.getRandomDictKey(DailyQuestData)][difficulty])
+	else
+		quest = deepCopy(DailyQuestData[classAlignment][difficulty])
+	end
+
+	quest.Checks = nil
+	for _, variable in ipairs(quest.Variables) do
+		local data = variable.Data
+		variable.Increment = nil
+		if data == "RANDOM_WEAPON" then
+			local ownedWeapons = UserData:GetOwnedItems(userId, "Weapons")
+			variable.Data = TableUtils.getRandomDictKey(ownedWeapons)
+		elseif data == "RANDOM_ARMOR" then
+			local ownedArmors = UserData:GetOwnedItems(userId, "Armors")
+			variable.Data = TableUtils.getRandomDictKey(ownedArmors)
+		elseif data == "RANDOM_HELMET" then
+			local ownedHelmets = UserData:GetOwnedItems(userId, "Helmets")
+			variable.Data = TableUtils.getRandomDictKey(ownedHelmets)
+		elseif data == "RANDOM_ABILITY" then
+			local ownedAbilities = UserData:GetOwnedItems(userId, "Abilities")
+			variable.Data = TableUtils.getRandomDictKey(ownedAbilities)
+		elseif data == "RANDOM_PET" then
+			local ownedPets = UserData:GetOwnedItems(userId, "Pets")
+			variable.Data = TableUtils.getRandomDictKey(ownedPets)
+		elseif data == "FLOOR_BOSS" then
+			local currentDungeon, currentFloor = UserDataService:GetNextDungeon(userId)
+			variable.Data = DungeonData[currentDungeon].FloorData[currentFloor].BossName
+		elseif data == "CURRENT_DUNGEON" then
+			local currentDungeon, _ = UserDataService:GetNextDungeon(userId)
+			variable.Data = DungeonData[currentDungeon].DisplayName
+		elseif data == "QUARTER_DUNGEON_TIME" then
+			local currentDungeon, _ = UserDataService:GetNextDungeon(userId)
+			variable.Data = DungeonData[currentDungeon].PlayTime
+		end
+	end
+
+	questData[difficulty] = quest
+end
+
+function UserData:UpdateQuestData(userId)
+	for _, difficulty in ipairs({
+		"easy";
+		"medium";
+		"hard";
+	}) do
+		self:AppendQuest(userId, difficulty)
+	end
+end
+
 -- When a player joins set up their profile automatically
 local function handlePlayer(player: Player)
 	local userId = player.UserId
@@ -341,6 +431,13 @@ Players.PlayerAdded:Connect(handlePlayer)
 Players.PlayerRemoving:Connect(function(player)
 	local userId = player.UserId
 	local profile = UserData:FindLoadedProfile(userId)
+
+	local threads = UserData._userThreads[player]
+	if threads then
+		for _, thread in pairs(threads) do
+			task.cancel(thread)
+		end
+	end
 
 	if profile then
 		-- Release the user's profile
@@ -386,6 +483,21 @@ loggedIn.Event:Connect(function(player: Player)
 		-- Update the user's last login date
 		data.LastLogin = currentTime
 		data.PlayCount += 1
+	end
+
+	if not data.QuestData then
+		UserData:UpdateQuestData(player.UserId)
+	end
+
+	for _, quest in pairs(data.QuestData) do
+		local completedAt = quest.CompletedTime
+		if completedAt then
+			if (quest.CompletedTime + DAY) - os.time() <= DAY then
+				UserData:AppendQuest(player.UserId, quest.Difficulty)
+			else
+				UserData:MarkQuestFinished(player.UserId, quest)
+			end
+		end
 	end
 
     UserData.LoggedIn:Fire(player, profile)

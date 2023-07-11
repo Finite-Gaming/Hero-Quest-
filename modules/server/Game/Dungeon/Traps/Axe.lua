@@ -52,6 +52,8 @@ function Axe.new(obj)
         end
     end))
 
+    self._obj:SetNetworkOwner(nil)
+
     return self
 end
 
@@ -62,7 +64,7 @@ function Axe:_playSound()
 end
 
 function Axe:_handleHit(player)
-    PlayerDamageService:DamagePlayer(player, DAMAGE)
+    PlayerDamageService:DamagePlayer(player, DAMAGE, "Axe")
 end
 
 return Axe

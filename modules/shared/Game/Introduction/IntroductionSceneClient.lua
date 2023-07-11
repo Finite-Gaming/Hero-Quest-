@@ -7,6 +7,7 @@ local require = require(game:GetService("ReplicatedStorage"):WaitForChild("Compl
 local UserDataClient = require("UserDataClient")
 local ScreenGuiProvider = require("ScreenGuiProvider")
 local VoicelineService = require("VoicelineService")
+local UserSettingsClient = require("UserSettingsClient")
 
 local TweenService = game:GetService("TweenService")
 local ContentProvider = game:GetService("ContentProvider")
@@ -113,7 +114,7 @@ function IntroductionSceneClient:Init()
                 image:Destroy()
             end
             self._frameFadeOut:Play()
-            SoundService.Music.Volume = 1
+            SoundService.Music.Volume = UserSettingsClient:GetSetting("MusicVolume")/100
         end)
     end
 end

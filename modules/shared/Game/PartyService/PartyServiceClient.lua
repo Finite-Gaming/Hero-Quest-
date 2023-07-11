@@ -44,6 +44,10 @@ function PartyServiceClient:StartGame()
     self._remoteEvent:FireServer("StartGame")
 end
 
+function PartyServiceClient:GetFriendsOnline()
+    return self._remoteFunction:InvokeServer("GetFriendsOnline")
+end
+
 function PartyServiceClient:GetPartyMembers()
     return self._remoteFunction:InvokeServer("GetPartyMembers")
 end

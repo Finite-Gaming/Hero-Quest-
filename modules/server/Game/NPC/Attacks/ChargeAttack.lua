@@ -9,8 +9,10 @@ local Raycaster = require("Raycaster")
 local AnimationTrack = require("AnimationTrack")
 local VoicelineService = require("VoicelineService")
 local PlayerDamageService = require("PlayerDamageService")
+local CameraShakeService = require("CameraShakeService")
 
 local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
 
 local ChargeAttack = setmetatable({}, AttackBase)
 ChargeAttack.__index = ChargeAttack
@@ -52,6 +54,15 @@ function ChargeAttack.new(npc)
                 self._maid.CheckFallback = nil
 
                 VoicelineService:PlayRandomGroup(("%s_Crash"):format(npc._variant), npc._humanoidRootPart)
+                local player = Players:GetPlayerFromCharacter(character)
+                if player then
+                    local maxDist = 64
+                    local distance = (rootPart.Position - rootCFrame.Position).Magnitude
+                    local shakeStrength = 7 * (1 - ((math.clamp(distance, 0.1, maxDist)/maxDist))) * 2
+
+                    CameraShakeService:Shake(player, shakeStrength)
+                end
+
                 self._maid:AddTask(task.delay(0.8, function()
                     VoicelineService:PlayRandomGroup(("%s_Charge"):format(npc._variant), npc._humanoidRootPart)
                 end))
@@ -71,6 +82,7 @@ function ChargeAttack:HandleHit(raycastResult)
     PlayerDamageService:DamageHitPart(
         raycastResult.Instance,
         self._damage,
+        self._npc._obj.Name,
         0.5,
         Vector3.new(simHitPos.X, raycastResult.Instance.Position.Y, simHitPos.Z),
         256,

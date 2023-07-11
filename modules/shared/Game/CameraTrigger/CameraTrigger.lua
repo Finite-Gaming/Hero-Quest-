@@ -13,7 +13,7 @@ local TweenService = game:GetService("TweenService")
 local ContextActionService = game:GetService("ContextActionService")
 
 local INPUT_SINKER_ACTION_NAME = "__sinkInputs"
-local IS_NEW_PLAYER = not UserDataClient:HasBeatenDungeon()
+local IS_NEW_PLAYER = not UserDataClient:HasPlayedDungeon()
 
 local CameraTrigger = setmetatable({}, BaseObject)
 CameraTrigger.__index = CameraTrigger

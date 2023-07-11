@@ -8,6 +8,7 @@ local DungeonInitClient = {}
 
 function DungeonInitClient:Init()
     require("UserDataClient"):Init()
+    require("UserSettingsClient"):Init()
 
     require("NPCOverlapParams"):Init()
     require("SoundModifier"):Init()
@@ -19,6 +20,7 @@ function DungeonInitClient:Init()
     require("ClientTemplateProvider"):Init()
     require("TotalEnemiesKilledClient"):Init()
     require("ClientClassBinders"):Init()
+    require("CharacterServiceClient"):Init()
 
     require("ItemRewardClient"):Init()
     require("AvatarCaptionService"):Init()

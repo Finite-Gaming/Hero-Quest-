@@ -7,6 +7,7 @@ local require = require(game:GetService("ReplicatedStorage"):WaitForChild("Compl
 local BaseObject = require("BaseObject")
 local ServerClassBinders = require("ServerClassBinders")
 local GameManager = require("GameManager")
+local QuestDataUtil = require("QuestDataUtil")
 
 local Players = game:GetService("Players")
 
@@ -17,9 +18,29 @@ function Character.new(obj)
     local self = setmetatable(BaseObject.new(obj), Character)
 
     self._player = Players:GetPlayerFromCharacter(self._obj)
-    if GameManager:IsDungeon() then
+
+    ServerClassBinders.PlayerInfoDisplay:Bind(self._obj)
+    ServerClassBinders.InventoryUI:Bind(self._obj)
+    ServerClassBinders.QuestUI:Bind(self._obj)
+    ServerClassBinders.SettingsUI:Bind(self._obj)
+
+    if GameManager:IsLobby() then
+        ServerClassBinders.ShopInterface:Bind(self._obj)
+        ServerClassBinders.UpgradeUI:Bind(self._obj)
+        ServerClassBinders.PlayScreen:Bind(self._obj)
+        ServerClassBinders.RedeemCodeUI:Bind(self._obj)
+    elseif GameManager:IsDungeon() then
+        ServerClassBinders.PlayerAbilityUI:BindAsync(self._obj)
         ServerClassBinders.PlayerAbility:Bind(self._obj)
     end
+
+    ServerClassBinders.MainButtonsInterface:Bind(self._obj)
+
+    self._humanoid = self._obj.Humanoid
+    self.DamageTracker = ServerClassBinders.DamageTracker:BindAsync(self._humanoid)
+    self._maid:AddTask(self.DamageTracker.Damaged:Connect(function(damage, _, _, damageTag)
+        QuestDataUtil.increment(self._player, "DamageTaken", damage, damageTag)
+    end))
 
     return self
 end

@@ -6,6 +6,7 @@ local require = require(game:GetService("ReplicatedStorage"):WaitForChild("Compl
 
 local GameManager = require("GameManager")
 
+require("GameUUID"):Init()
 require("CameraShakeService"):Init()
 
 if GameManager:IsLobby() then

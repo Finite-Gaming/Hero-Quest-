@@ -11,6 +11,7 @@ local CameraShaker = require("CameraShaker")
 local SoundPlayer = require("SoundPlayer")
 local Network = require("Network")
 local CameraShakeServiceConstants = require("CameraShakeServiceConstants")
+local UserSettingsClient = require("UserSettingsClient")
 
 local Players = game:GetService("Players")
 
@@ -27,18 +28,6 @@ function CharacterClient.new(obj)
     while not localCharacter or localCharacter ~= self._obj do
         localCharacter = Players.LocalPlayer.CharacterAdded:Wait()
     end
-    ClientClassBinders.PlayerInfoDisplay:BindAsync(self._obj)
-    ClientClassBinders.InventoryUI:BindAsync(self._obj)
-
-    if GameManager:IsLobby() then
-        ClientClassBinders.ShopInterface:BindAsync(self._obj)
-        ClientClassBinders.UpgradeUI:BindAsync(self._obj)
-        ClientClassBinders.PlayScreen:BindAsync(self._obj)
-        ClientClassBinders.RedeemCodeUI:BindAsync(self._obj)
-    elseif GameManager:IsDungeon() then
-    end
-
-    ClientClassBinders.MainButtonsInterface:BindAsync(self._obj)
 
     self._camera = workspace.CurrentCamera
     self._cameraShaker = CameraShaker.new(Enum.RenderPriority.Camera.Value, function(cframe)
@@ -52,10 +41,15 @@ function CharacterClient.new(obj)
     self._maid:AddTask(self._humanoid:GetPropertyChangedSignal("Health"):Connect(function()
         local newHealth = self._humanoid.Health
         local healthDiff = newHealth - self._oldHealth
+        if newHealth == self._humanoid.MaxHealth then
+            return
+        end
 
         local intensity = math.abs(healthDiff) * 0.2
         if math.sign(healthDiff) == -1 then
-            self._cameraShaker:ShakeOnce(intensity, intensity * 4, 0, intensity/16, intensity/16, 0.7)
+            if not UserSettingsClient:GetSetting("DisableCameraShake") then
+                self._cameraShaker:ShakeOnce(intensity, intensity * 4, 0, intensity/16, intensity/16, 0.7)
+            end
 
             if self._obj:GetAttribute("Armor") then
                 SoundPlayer:PlaySoundAtPart(self._humanoidRootPart, "Armor_Hit")
@@ -66,6 +60,9 @@ function CharacterClient.new(obj)
     end))
 
     self._maid:AddTask(Network:GetRemoteEvent(CameraShakeServiceConstants.REMOTE_EVENT_NAME).OnClientEvent:Connect(function(intensity)
+        if UserSettingsClient:GetSetting("DisableCameraShake") then
+            return
+        end
         self._cameraShaker:ShakeOnce(intensity, intensity * 4, 0, intensity/16, intensity/16, 0.7)
     end))
 

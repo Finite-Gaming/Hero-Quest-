@@ -16,7 +16,7 @@ function CleaverTossServer:Init()
     self._remoteEvent = Network:GetRemoteEvent(CleaverTossConstants.REMOTE_EVENT_NAME)
 
     self._remoteEvent.OnServerEvent:Connect(function(player)
-        PlayerDamageService:DamagePlayer(player, math.random(DAMAGE.Min, DAMAGE.Max))
+        PlayerDamageService:DamagePlayer(player, math.random(DAMAGE.Min, DAMAGE.Max), "Warden")
     end)
 end
 

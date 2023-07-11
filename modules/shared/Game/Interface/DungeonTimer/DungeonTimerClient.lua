@@ -30,8 +30,14 @@ function DungeonTimerClient:Init()
     end
 
     self:Update()
-    RunService.Heartbeat:Connect(function()
+    self._update = RunService.Heartbeat:Connect(function()
         self:Update()
+    end)
+    workspace:GetAttributeChangedSignal("DungeonDefeated"):Connect(function()
+        local defeated = workspace:GetAttribute("DungeonDefeated")
+        if defeated then
+            self._update:Disconnect()
+        end
     end)
 
     self._gui.Parent = self._screenGui

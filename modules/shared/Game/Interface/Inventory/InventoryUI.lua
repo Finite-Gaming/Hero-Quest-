@@ -16,6 +16,7 @@ local AnimationTrack = require("AnimationTrack")
 local ArmorApplier = require("ArmorApplier")
 local ConfirmationPrompt = require("ConfirmationPrompt")
 local ExitButtonMixin = require("ExitButtonMixin")
+local SoundPlayer = require("SoundPlayer")
 
 local UserInputService = game:GetService("UserInputService")
 
@@ -214,7 +215,6 @@ end
 function InventoryUI:_bindButton(button, category, itemKey)
     self._maid:AddTask(button.Activated:Connect(function()
         if self._inSellMode then
-            warn("sell action")
             if self._sellingInProgress then
                 return
             end
@@ -236,6 +236,9 @@ function InventoryUI:_bindButton(button, category, itemKey)
             local toEquip = itemKey
             if equipped == itemKey then
                 toEquip = nil
+                SoundPlayer:PlaySound("UnequipItem")
+            else
+                SoundPlayer:PlaySound("EquipItem")
             end
 
             self._equippedItems[category] = toEquip

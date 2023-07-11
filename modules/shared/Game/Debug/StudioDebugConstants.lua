@@ -1,4 +1,4 @@
 return {
     SimulateNewPlayer = false;
-    DungeonSpawnRoom = "7";
+    -- DungeonSpawnRoom = "6";
 }
