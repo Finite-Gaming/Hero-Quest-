@@ -21,6 +21,7 @@ local RoomManager = {}
 function RoomManager:Init()
     self._dungeonTag = assert(workspace:GetAttribute("DungeonTag"), "No DungeonTag attribute under workspace!")
     self._totalRooms = #workspace.Rooms:GetChildren()
+    self._setupRooms = {}
 
     self._progressionData = DungeonData[self._dungeonTag].ProgressionVoicelines
 
@@ -64,6 +65,8 @@ function RoomManager:Init()
                 self:ProgressRoom()
             end
         end)
+    else
+        self:_setupRoom(tostring(tonumber(starterRoom + 1)))
     end
 
     NPCSpawner.RoomCleared:Connect(function()
@@ -100,12 +103,15 @@ function RoomManager:ProgressRoom()
     end
 
     local lastRoomFolder = workspace.Rooms:FindFirstChild(tostring(lastRoom))
-    if lastRoomFolder and lastRoomFolder:GetAttribute("MiniBossRoom") then
-        ProgressionHelper:PlaySoundForScenario("MiniBossCleared")
+    if lastRoomFolder then
+        if lastRoomFolder:GetAttribute("MiniBossRoom") then
+            ProgressionHelper:PlaySoundForScenario("MiniBossCleared")
+        end
     end
 
+    local nextRoomFolder = nil
     if nextRoom ~= newRoom then
-        local nextRoomFolder = workspace.Rooms:FindFirstChild(tostring(nextRoom))
+        nextRoomFolder = workspace.Rooms:FindFirstChild(tostring(nextRoom))
         if nextRoomFolder and nextRoomFolder:GetAttribute("BossRoom") then
             ProgressionHelper:PlaySoundForScenario("BossFight")
         end
@@ -127,6 +133,12 @@ function RoomManager:ProgressRoom()
 end
 
 function RoomManager:_setupRoom(roomName)
+    roomName = tostring(math.clamp(tonumber(roomName), 0, self._totalRooms))
+    if self._setupRooms[roomName] then
+        return
+    end
+    self._setupRooms[roomName] = true
+
     NPCSpawner:SetupZone(roomName)
 
     local buildName = ("%s_%s"):format(self._dungeonTag, roomName)

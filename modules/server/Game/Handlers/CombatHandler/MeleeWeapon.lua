@@ -13,6 +13,8 @@ local PlayerDamageService = require("PlayerDamageService")
 local ActionHistory = require("ActionHistory")
 local UserDataService = require("UserDataService")
 
+local RunService = game:GetService("RunService")
+
 local ANIMATIONS = ReplicatedStorage:WaitForChild("Animations"):WaitForChild("Weapon")
 local GENERIC_ANIMATIONS = ANIMATIONS:WaitForChild("Generic")
 local ONE_HANDED_ANIMATIONS = ANIMATIONS:WaitForChild("OneHanded")
@@ -48,9 +50,15 @@ function MeleeWeapon.new(obj)
     self._remoteEvent.Parent = self._obj
 
     self._damageRange = self._obj:GetAttribute("Damage")
+    if RunService:IsStudio() then
+        -- self._damageRange = NumberRange.new(51, 52)
+    end
 
     self._lastAttack = os.clock()
     self._cachedHits = {}
+
+    self._overriddenAnimationData = {}
+    self._animateScript = self._character.Animate
 
     self._humanoid = self._character.Humanoid
     self._attackCooldown = 1/self._obj:GetAttribute("BaseAttackSpeed")
@@ -85,8 +93,8 @@ function MeleeWeapon.new(obj)
 end
 
 function MeleeWeapon:_getDamage()
-    local multiplier = 1 + math.clamp(UserDataService:GetUpgradeLevel(self._player, "Damage")/100, 0, 100)
-    return math.random(self._damageRange.Min, self._damageRange.Max) * multiplier
+    return math.random(self._damageRange.Min, self._damageRange.Max) +
+        (UserDataService:GetUpgradeLevel(self._player, "Damage") * 1.05)
 end
 
 function MeleeWeapon:_handleHit(instance, position)
@@ -126,15 +134,31 @@ function MeleeWeapon:_handleEquipped()
     self._equipped = true
 
     local upgradeLevel = UserDataService:GetUpgradeLevel(self._player, "Damage")
-    self._obj:ScaleTo(BASE_SCALE + (BASE_SCALE * (upgradeLevel/150))) -- TODO: change this?
+    self._obj:ScaleTo(BASE_SCALE + (BASE_SCALE * (upgradeLevel/250))) -- TODO: change this?
 
-    self._character.Animate.run:FindFirstChildOfClass("Animation").AnimationId = (self._animationFolder:FindFirstChild("Run") or GENERIC_ANIMATIONS.Run).AnimationId
+    for _, animation in ipairs(self._animationFolder:GetChildren()) do
+        if not animation:IsA("Animation") then
+            continue
+        end
+
+        local path = self._animateScript:FindFirstChild(animation.Name) or self._animateScript:FindFirstChild(animation.Name:lower())
+        if path then
+            local oldAnimation = path:FindFirstChildOfClass("Animation")
+            if oldAnimation then
+                self._overriddenAnimationData[oldAnimation] = oldAnimation.AnimationId
+                oldAnimation.AnimationId = animation.AnimationId
+            end
+        end
+    end
+    -- self._animateScript.run:FindFirstChildOfClass("Animation").AnimationId = (self._animationFolder:FindFirstChild("Run") or GENERIC_ANIMATIONS.Run).AnimationId
 end
 
 function MeleeWeapon:_handleUnequipped()
     self._equipped = false
 
-    self._character.Animate.run:FindFirstChildOfClass("Animation").AnimationId = "http://www.roblox.com/asset/?id=4417979645"
+    for animation, animationId in pairs(self._overriddenAnimationData) do
+        animation.AnimationId = animationId
+    end
 end
 
 return MeleeWeapon

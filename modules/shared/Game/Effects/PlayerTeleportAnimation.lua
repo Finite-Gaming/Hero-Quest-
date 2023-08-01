@@ -99,7 +99,7 @@ function PlayerTeleportAnimation.exit(player)
     task.delay(1.3, function()
         EffectPlayerClient:PlayEffect(
             "TPEffectStart",
-            rigCFrame.Position,
+            rootPart.RootRigAttachment.WorldPosition,
             effectColor
         )
     end)

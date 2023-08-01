@@ -7,7 +7,6 @@ local require = require(game:GetService("ReplicatedStorage"):WaitForChild("Compl
 local BaseObject = require("BaseObject")
 local ScreenGuiProvider = require("ScreenGuiProvider")
 local GuiTemplateProvider = require("GuiTemplateProvider")
-local UserDataClient = require("UserDataClient")
 local UpgradePriceUtil = require("UpgradePriceUtil")
 local NotificationService = require("NotificationService")
 local VoicelineService = require("VoicelineService")
@@ -15,6 +14,7 @@ local SoundPlayer = require("SoundPlayer")
 local PlayerLevelCalculator = require("PlayerLevelCalculator")
 local ExitButtonMixin = require("ExitButtonMixin")
 local EffectPlayerClient = require("EffectPlayerClient")
+local UserUpgradesClient = require("UserUpgradesClient")
 
 -- TODO: cap level?
 local UpgradeUI = setmetatable({}, BaseObject)
@@ -49,7 +49,7 @@ function UpgradeUI:_bindContainer(container, upgradeName)
 end
 
 function UpgradeUI:_updateLabels()
-    local upgradeData = UserDataClient:GetUpgradeData()
+    local upgradeData = UserUpgradesClient:GetUpgradeData()
 
     for upgradeName, upgradeLevel in pairs(upgradeData) do
         local container = self._containers[upgradeName]
@@ -59,13 +59,13 @@ function UpgradeUI:_updateLabels()
     end
 
     local classAlignment = PlayerLevelCalculator:GetClassAlignment(upgradeData)
-    self._gui.MainFrame.RedBox.TextLabel.Text = ("Maximum Level: 128\nCurrent Class Alignment: %s")
+    self._gui.MainFrame.RedBox.TextLabel.Text = ("Current Class Alignment: %s")
         :format(classAlignment)
 end
 
 function UpgradeUI:_bindButton(button, upgradeName)
     self._maid:AddTask(button.Activated:Connect(function()
-        local success, code = UserDataClient:UpgradeStat(upgradeName)
+        local success, code = UserUpgradesClient:UpgradeStat(upgradeName)
 
         if success then
             local buttonSound = button.Parent:GetAttribute("ButtonSound")

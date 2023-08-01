@@ -53,4 +53,30 @@ return {
             OctopusPet = 1;
         };
     };
+
+    -- Chests
+    Chest1 = {
+        RewardMultiple = true;
+        PromptReward = true;
+
+        Money = NumberRange.new(75, 125);
+        XP = NumberRange.new(100, 150);
+        Abilities = {
+            DashAbility = 1;
+        }
+    };
+    Chest2 = {
+        RewardMultiple = true;
+        PromptReward = true;
+
+        Money = NumberRange.new(200, 300);
+        XP = NumberRange.new(250, 300);
+    };
+    Chest3 = {
+        RewardMultiple = true;
+        PromptReward = true;
+
+        Money = NumberRange.new(400, 600);
+        XP = NumberRange.new(400, 600);
+    };
 }

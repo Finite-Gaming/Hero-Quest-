@@ -258,6 +258,9 @@ function UserDataService:Init()
         self:_connectRemote("GetMoney", UserDataServiceConstants.GET_MONEY_REMOTE_FUNCTION_NAME, function(player)
             return UserData:WaitForProfile(player.UserId).Data.Money
         end)
+        self:_connectRemote("GetLevel", UserDataServiceConstants.GET_LEVEL_REMOTE_FUNCTION_NAME, function(player)
+            return PlayerLevelCalculator:GetLevelFromXP(UserData:WaitForProfile(player.UserId).Data.XP)
+        end)
     end
 
     do -- play data

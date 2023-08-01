@@ -79,6 +79,8 @@ function ArmorEquipEffect.new(character, armorName, endTime)
             end
 
             local signalKey = self:_animateLimb(limb, armorPiece, endTime)
+            armorPiece.Parent = workspace.Terrain
+
             local addedKey = ("Added_%s"):format(HttpService:GenerateGUID(false))
             self._maid[addedKey] = limb.ChildAdded:Connect(function(child)
                 if child:GetAttribute("SetKey") == endTime and child ~= armorPiece then
@@ -126,21 +128,11 @@ function ArmorEquipEffect:_animateLimb(limb, armorPiece, endTime)
     local relativePosition = armorPiece:GetPivot().Position - limb:GetPivot().Position
     local pieceDistance = relativePosition.Magnitude
 
-    local originalProperties = {}
+    if armorPiece:IsA("BasePart") then
+        self:_processPart(armorPiece)
+    end
     for _, part in ipairs(ModelUtils.getParts(armorPiece)) do
-        local originals = {}
-        originals.Color = part.Color
-        originals.Material = part.Material
-
-        -- part.Color = Color3.new(1, 1, 1)
-        -- part.Material = Enum.Material.ForceField
-
-        originalProperties[part] = originals
-
-        part.Anchored = true
-        part.CanCollide = false
-        part.CanTouch = false
-        part.CanQuery = false
+        self:_processPart(part)
     end
 
     local trail = maid:AddTask(ClientTemplateProvider:Get("ArmorEffectTrailTemplate"))
@@ -154,8 +146,6 @@ function ArmorEquipEffect:_animateLimb(limb, armorPiece, endTime)
     trail.Attachment0, trail.Attachment1 = att0, att1
     trail.Parent, att0.Parent, att1.Parent = basePart, basePart, basePart
     trail.Enabled = true
-
-    armorPiece.Parent = workspace.Terrain
 
     local signalKey = ("Signal_%s"):format(HttpService:GenerateGUID(false))
     maid:AddTask(RunService.Heartbeat:Connect(function()
@@ -188,6 +178,13 @@ function ArmorEquipEffect:_animateLimb(limb, armorPiece, endTime)
     self._maid[signalKey] = maid
 
     return signalKey
+end
+
+function ArmorEquipEffect:_processPart(part)
+    part.Anchored = true
+    part.CanCollide = false
+    part.CanTouch = false
+    part.CanQuery = false
 end
 
 return ArmorEquipEffect

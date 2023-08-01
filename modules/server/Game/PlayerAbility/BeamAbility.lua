@@ -12,7 +12,7 @@ local PlayerAbilityData = require("PlayerAbilityData")
 local Raycaster = require("Raycaster")
 local ServerClassBinders = require("ServerClassBinders")
 local QuestDataUtil = require("QuestDataUtil")
-local UserDataService = require("UserDataService")
+local AbilityStatMixin = require("AbilityStatMixin")
 
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
@@ -33,6 +33,7 @@ function BeamAbility.new(obj)
 
     self._raycaster = Raycaster.new()
     self._raycaster:Ignore({self._obj, workspace.Terrain})
+    AbilityStatMixin:Add(self)
 
     self._remoteEvent = self._maid:AddTask(Instance.new("RemoteEvent"))
     self._remoteEvent.Name = BeamAbilityConstants.REMOTE_EVENT_NAME
@@ -61,27 +62,6 @@ function BeamAbility:_fireOtherClients(...)
 
         self._remoteEvent:FireClient(player, ...)
     end
-end
-
-function BeamAbility:GetDamage()
-    local damageMultiplier = UserDataService:GetUpgradeLevel(self._player, "MagicDamage")/100
-    return self._baseStats.Damage + (self._baseStats.Damage * damageMultiplier)
-end
-
-function BeamAbility:GetCooldown()
-    local upgradeLevel = UserDataService:GetUpgradeLevel(self._player, "MagicDamage")
-    local reductionPercentage = 10 -- TODO: change this?
-    local reductionAmount = self._baseStats.Cooldown * (reductionPercentage / 100)
-
-    return self._baseStats.Cooldown - (reductionAmount * upgradeLevel)
-end
-
-function BeamAbility:GetRange()
-    local upgradeLevel = UserDataService:GetUpgradeLevel(self._player, "MagicDamage")
-    local increasePercentage = 15 -- TODO: change this?
-    local increaseAmount = self._baseStats.Range * (increasePercentage / 100)
-
-    return self._baseStats.Range + (increaseAmount * upgradeLevel)
 end
 
 function BeamAbility:_activate(state)

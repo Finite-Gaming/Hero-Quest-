@@ -29,11 +29,11 @@ function Character.new(obj)
         ServerClassBinders.UpgradeUI:Bind(self._obj)
         ServerClassBinders.PlayScreen:Bind(self._obj)
         ServerClassBinders.RedeemCodeUI:Bind(self._obj)
-    elseif GameManager:IsDungeon() then
-        ServerClassBinders.PlayerAbilityUI:BindAsync(self._obj)
-        ServerClassBinders.PlayerAbility:Bind(self._obj)
+    -- elseif GameManager:IsDungeon() then
     end
 
+    ServerClassBinders.PlayerAbilityUI:BindAsync(self._obj)
+    ServerClassBinders.PlayerAbility:Bind(self._obj)
     ServerClassBinders.MainButtonsInterface:Bind(self._obj)
 
     self._humanoid = self._obj.Humanoid

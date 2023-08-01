@@ -80,7 +80,7 @@ function EffectPlayerClient:PlayEffect(effectName, position, color)
     end
 
     if not effect:GetAttribute("EffectPersist") then
-        local addedDelay = effect:GetAttribute("Lifetime") or 1
+        local addedDelay = effect:GetAttribute("Lifetime") or 0.1
         task.delay(maxLifetime + maxDelay + addedDelay, function()
             effect:Destroy()
         end)

@@ -7,6 +7,17 @@ local require = require(game:GetService("ReplicatedStorage"):WaitForChild("Compl
 local DungeonInit = {}
 
 function DungeonInit:Init()
+    local startTime = os.clock()
+    require("PathfindingHelper"):Init()
+    print(("Pathfinding initialization took %fs"):format(os.clock() - startTime))
+
+    require("ProjectileTypeProvider"):Init()
+    require("ProjectileCacher"):Init()
+    require("ProjectileService"):Init()
+    require("ProjectileHitHandler"):Init()
+
+    require("NPCOverlapParams"):Init()
+    require("HitscanPartService"):Init()
     require("ServerClassBinders"):Init()
 
     require("UserDataService"):Init()
@@ -14,13 +25,13 @@ function DungeonInit:Init()
     require("TotalEnemiesKilled"):Init()
     require("MarketplacePurchaseHandler"):Init()
 
-    require("NPCOverlapParams"):Init()
     require("DamageFeedback"):Init()
     require("PlayScreenHandler"):Init()
     require("SoundModifier"):Init()
     require("SoundPlayer"):Init()
     require("SoundPlayerService"):Init()
     require("VoicelineService"):Init()
+    require("AttackTelegrapherService"):Init()
 
     require("PlayerNoCollideService"):Init()
     require("PetService"):Init()

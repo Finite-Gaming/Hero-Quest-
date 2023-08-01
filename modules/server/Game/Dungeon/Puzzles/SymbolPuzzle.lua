@@ -9,6 +9,7 @@ local Players = game:GetService("Players")
 local BaseObject = require("BaseObject")
 local Signal = require("Signal")
 local HumanoidUtils = require("HumanoidUtils")
+local TableUtils = require("TableUtils")
 
 local SymbolPuzzle = setmetatable({}, BaseObject)
 SymbolPuzzle.__index = SymbolPuzzle
@@ -17,12 +18,26 @@ function SymbolPuzzle.new(obj)
     local self = setmetatable(BaseObject.new(obj), SymbolPuzzle)
 
     self.Solved = Signal.new() -- :Fire()
+    self._symbols = self._obj.Symbols:GetChildren()
+    self._displaySymbols = self._obj.DisplaySymbols:GetChildren()
+
+    self._sOrder = self:_order(self._symbols)
+    self._dOrder = self:_order(self._displaySymbols)
+
+    self:_randomize(self._symbols)
+    self:_randomize(self._displaySymbols)
+
+    for color, symbol in pairs(self._dOrder) do
+        local match = self._sOrder[color]
+        match.Name = symbol.Name
+    end
 
     self._currentStep = 1
 
     self._orderedSymbols = {}
     self._originalColors = {}
-    for _, symbol in ipairs(self._obj:GetChildren()) do
+
+    for _, symbol in ipairs(self._symbols) do
         local symbolOrder = tonumber(symbol.Name)
         local originalColor = symbol.Color
 
@@ -62,6 +77,29 @@ function SymbolPuzzle.new(obj)
     end
 
     return self
+end
+
+function SymbolPuzzle:_order(children)
+    local t = {}
+    for _, symbol in ipairs(children) do
+        t[tonumber(symbol.Name)] = symbol
+    end
+    return t
+end
+
+function SymbolPuzzle:_randomize(children)
+
+    local positions = {}
+    for _, symbol in ipairs(children) do
+        positions[tonumber(symbol.Name)] = symbol.Position
+    end
+    local shuffled = TableUtils.shallowCopy(children)
+    TableUtils.shuffle(shuffled)
+
+    for i, symbol in ipairs(shuffled) do
+        symbol.Name = i
+        symbol.Position = positions[i]
+    end
 end
 
 function SymbolPuzzle:_reset()

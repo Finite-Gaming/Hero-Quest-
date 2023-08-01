@@ -62,9 +62,8 @@ function ArmorApplier:ApplyArmor(character, armorSet, setKey)
     self:UpdateStats(character)
 
     for _, armorPiece in ipairs(armorModel:GetChildren()) do
-        local limbPiece = self:_applyToLimb(character, armorPiece)
+        local limbPiece = self:_applyToLimb(character, armorPiece, setKey)
         limbPiece:SetAttribute("ArmorPiece", true)
-        limbPiece:SetAttribute("SetKey", setKey)
     end
 
     armorModel:Destroy()
@@ -79,13 +78,12 @@ function ArmorApplier:ApplyHelmet(character, helmetName, setKey)
     character:SetAttribute("Helmet", helmetName)
     self:UpdateStats(character)
 
-    local limbPiece = self:_applyToLimb(character, helmetModel.Head)
+    local limbPiece = self:_applyToLimb(character, helmetModel.Head, setKey)
     limbPiece:SetAttribute("HelmetPiece", true)
-    limbPiece:SetAttribute("SetKey", setKey)
     helmetModel:Destroy()
 end
 
-function ArmorApplier:_applyToLimb(character, armorPiece)
+function ArmorApplier:_applyToLimb(character, armorPiece, setKey)
     local limb = character:FindFirstChild(armorPiece.Name)
     if not limb then
         warn(("[ArmorApplier] - Could not find limb for %q")
@@ -109,22 +107,34 @@ function ArmorApplier:_applyToLimb(character, armorPiece)
     end
 
     primaryPart.Name = "Handle"
-    primaryPart.Anchored = true
     armorPiece.PrimaryPart = nil
 
-    -- primaryPart.Size = limb.Size + Vector3.one * 0.2
-    -- TODO: scale entire model, kinda waiting on :ScaleTo to release :grin:
     AssemblyUtils.rigidAssemble(armorPiece)
-    armorPiece:PivotTo(limb:GetPivot())
+    self:_processPart(primaryPart)
 
-    primaryPart.Anchored = false
     if armorPiece:IsA("BasePart") then
         self:_processPart(armorPiece)
     end
     for _, part in ipairs(ModelUtils.getParts(armorPiece)) do
         self:_processPart(part)
     end
-    WeldUtils.weld(primaryPart, limb)
+
+    for _, part in ipairs(armorPiece:GetDescendants()) do
+        if not part:IsA("BasePart") then
+            continue
+        end
+
+        self:_processPart(part)
+    end
+
+    if setKey then
+        armorPiece:SetAttribute("SetKey", setKey)
+    end
+
+    local limbPivot = limb:GetPivot()
+    armorPiece:PivotTo(limbPivot)
+    local relative = primaryPart.CFrame:ToObjectSpace(limbPivot)
+    WeldUtils.weld(primaryPart, limb, relative)
     armorPiece.Parent = limb
 
     return armorPiece

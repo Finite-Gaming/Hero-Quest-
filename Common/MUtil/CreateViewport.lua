@@ -5,7 +5,7 @@ local ModelUtils = require("ModelUtils")
 
 local Selection = game:GetService("Selection")
 -- [[change this to your model path VV]]
-local model = game.ServerStorage.Templates.WardenTemplate
+local model = game.ServerStorage.Templates.LargeEnemyTemplate
 
 local selected = assert(Selection:Get()[1], "select something")
 
@@ -29,9 +29,9 @@ viewportFrame.LightDirection = Vector3.new(1, -1, 1)
 
 local distanceOffset = CFrame.new(
     0,
-    6,
+    3,
     7
 )
-camera.CFrame = modelCFrame * CFrame.Angles(0, math.pi, 0) * distanceOffset
+camera.CFrame = modelCFrame * CFrame.Angles(0, math.pi/2, 0) * distanceOffset
 
 viewportFrame.Parent = selected

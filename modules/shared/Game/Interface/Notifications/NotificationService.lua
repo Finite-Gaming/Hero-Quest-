@@ -31,6 +31,7 @@ local NotificationService = {}
 
 function NotificationService:Init()
     self._screenGui = ScreenGuiProvider:Get("NotificationBanner")
+    self._screenGui.DisplayOrder = 10
     self._zIndex = 0 -- stack new stuffs on top of old yay
 end
 

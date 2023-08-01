@@ -54,6 +54,12 @@ function ProgressionHelper:HandlePlayerLoggedIn(player, profile)
             end
         end
 
+        if profile.Data.DungeonsCompleted[self._dungeonTag] then
+            self._notBeaten = false
+        else
+            self._notBeaten = true
+        end
+
         local playedDict = profile.Data.DungeonsPlayed
         if playedDict[self._dungeonTag] then
             playedDict[self._dungeonTag] += 1
@@ -108,6 +114,14 @@ end
 
 function ProgressionHelper:PlaySoundForScenario(scenario, ...)
     return SoundPlayer:PlaySound(self:GetVoicelineForScenario(scenario), ...)
+end
+
+function ProgressionHelper:IsBeaten()
+    if self._notBeaten == nil then
+        warn("[ProgressionHelper] - Fallback returned, no players joined yet")
+        return false
+    end
+    return not self._notBeaten
 end
 
 function ProgressionHelper:IsNewPlayers()
