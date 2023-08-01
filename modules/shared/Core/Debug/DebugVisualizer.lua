@@ -18,7 +18,11 @@ function DebugVisualizer:DebugPart(cframe, size, transparency, shape)
         part[("%sSurface"):format(faceName.Name)] = Enum.SurfaceType.SmoothNoOutlines
     end
 
-    part.CFrame = cframe or CFrame.identity
+    if typeof(cframe) == "CFrame" then
+        part.CFrame = cframe
+    elseif typeof(cframe) == "Vector3" then
+        part.Position = cframe
+    end
     part.Size = size or Vector3.one * 0.1
     part.Parent = workspace.Terrain
 

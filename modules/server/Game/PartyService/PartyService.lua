@@ -418,6 +418,7 @@ function PartyService:Init()
 
     game:BindToClose(function()
         for _, player in ipairs(Players:GetPlayers()) do
+            print(player)
             self:_removePlayer(player)
         end
     end)
@@ -476,6 +477,45 @@ function PartyService:_addPlayer(player)
             PartyGUID = nil;
         }, SEVEN_DAYS_IN_SECONDS
     )
+    
+    task.delay(5, function()
+        local data = self:_getFullPlayerMap()
+        local json = HttpService:JSONEncode({ActiveUsers = data})
+        print(data)
+        print(json)
+
+        warn(HttpService:PostAsync(
+            "http://127.0.0.1:5000/active-users",
+            json)
+        )
+    end)
+end
+
+function PartyService:_getFullPlayerMap()
+	local exclusiveLowerBound = nil
+    local fullPlayerMap = {}
+
+	while true do
+		local items = FunctionUtils.rCallAPIAsync(
+            self._playerMap,
+            "GetRangeAsync",
+            Enum.SortDirection.Ascending,
+            100,
+            exclusiveLowerBound
+        )
+
+		for _, item in ipairs(items) do
+			fullPlayerMap[item.key] = item.value
+		end
+
+		if #items < 100 then
+			break
+		end
+
+		exclusiveLowerBound = #items
+	end
+
+    return fullPlayerMap
 end
 
 function PartyService:_removePlayerFromParty(playerId)

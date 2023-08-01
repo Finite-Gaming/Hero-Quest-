@@ -33,7 +33,6 @@ function FunctionUtils.rCallAPIAsync(map, method, ...)
     end
 
     if not success then
-        warn("bruh dang")
         return
     end
 

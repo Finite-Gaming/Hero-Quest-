@@ -110,5 +110,10 @@ return {
             Thumbnail = "rbxassetid://13196001375";
             Rarity = "Common";
         };
+        DashAbility = {
+            DisplayName = "Dash Ability";
+            Thumbnail = "rbxassetid://14147219640";
+            Rarity = "Common";
+        };
     };
 }

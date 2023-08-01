@@ -4,6 +4,7 @@
 
 local require = require(game:GetService("ReplicatedStorage"):WaitForChild("Compliance"))
 
+local HttpService = game:GetService("HttpService")
 local BaseObject = require("BaseObject")
 local PlayerAbilityData = require("PlayerAbilityData")
 local ClientClassBinders = require("ClientClassBinders")
@@ -59,6 +60,10 @@ function PlayerAbilityClient:UpdateAbility(abilityName)
 
         self._abilityUI:SetEnabled(true)
         maid:AddTask(function()
+            if self._abilityData then
+                return
+            end
+
             local abilityUI = ClientClassBinders.PlayerAbilityUI:Get(self._obj)
             if not abilityUI then
                 return
@@ -71,7 +76,7 @@ function PlayerAbilityClient:UpdateAbility(abilityName)
         end))
 
         maid:BindAction(
-            "__playerAbility",
+            ("__playerAbility_%s"):format(HttpService:GenerateGUID(false)),
             function(_, inputState)
                 if inputState ~= Enum.UserInputState.Begin then
                     return
@@ -92,6 +97,9 @@ function PlayerAbilityClient:_activate()
     local cooldown = self._cooldownTime or self._abilityData.BaseStats.Cooldown
     if fireTime - (self._lastFire or 0) < cooldown then
         return
+    end
+    if cooldown ~= self._abilityData.BaseStats.Cooldown then
+        cooldown = self._abilityData.BaseStats.Cooldown
     end
 
     local abilityClass = ClientClassBinders[self._abilityData.Class]:Get(self._obj)

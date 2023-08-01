@@ -24,12 +24,17 @@ return ClassBinderProvider.new(function(self)
     self:AddClassBinder(ClassBinder.new("PlayerAbilityUI", BaseObject))
     self:AddClassBinder(ClassBinder.new("PlayScreen", BaseObject))
     self:AddClassBinder(ClassBinder.new("SettingsUI", BaseObject))
+    self:AddClassBinder(ClassBinder.new("EnemyHealthBar", BaseObject))
+
+    -- Projectiles
+    self:AddClassBinder(ClassBinder.new("ProjectileOutput", require("ProjectileOutput")))
 
     -- Traps
     self:AddClassBinder(ClassBinder.new("Spikes", require("Spikes")))
     self:AddClassBinder(ClassBinder.new("Boulder", require("Boulder")))
     self:AddClassBinder(ClassBinder.new("Axe", require("Axe")))
     self:AddClassBinder(ClassBinder.new("Flamethrower", require("Flamethrower")))
+    self:AddClassBinder(ClassBinder.new("SpikyBallTrap", require("SpikyBallTrap")))
 
     -- Puzzles
     self:AddClassBinder(ClassBinder.new("SymbolPuzzle", require("SymbolPuzzle")))
@@ -41,13 +46,16 @@ return ClassBinderProvider.new(function(self)
     self:AddClassBinder(ClassBinder.new("CandleFlicker", require("CandleFlicker")))
     self:AddClassBinder(ClassBinder.new("DamageTracker", require("DamageTracker")))
     self:AddClassBinder(ClassBinder.new("InteractiveTeleporter", require("InteractiveTeleporter")))
+    self:AddClassBinder(ClassBinder.new("HitscanPart", require("HitscanPart")))
 
     self:AddClassBinder(ClassBinder.new("Pet", require("Pet")))
+    self:AddClassBinder(ClassBinder.new("LootChest", require("LootChest")))
 
     -- Abilities
     self:AddClassBinder(ClassBinder.new("PlayerAbility", require("PlayerAbility")))
 
     self:AddClassBinder(ClassBinder.new("BeamAbility", require("BeamAbility")))
+    self:AddClassBinder(ClassBinder.new("DashAbility", require("DashAbility")))
 
     -- Tools
     self:AddClassBinder(ClassBinder.new("MeleeWeapon", require("MeleeWeapon")))

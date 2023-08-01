@@ -95,7 +95,9 @@ function BottomCaptionService:_addCleanup(displayTime)
     displayTime = displayTime or 1
 
     task.delay(displayTime, function()
-        self._activeMaid:Destroy()
+        if self._activeMaid and self._activeMaid.Destroy then
+            self._activeMaid:Destroy()
+        end
     end)
 end
 

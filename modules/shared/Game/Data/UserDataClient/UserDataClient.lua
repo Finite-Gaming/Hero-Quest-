@@ -14,6 +14,7 @@ local UserDataClient = {}
 
 function UserDataClient:Init()
     self:_addMethod("GetOwnedItems", Network:GetRemoteFunction(UserDataServiceConstants.GET_ITEMS_REMOTE_FUNCTION_NAME))
+    print("passed 1")
     self:_addMethod("SetEquipped", Network:GetRemoteFunction(UserDataServiceConstants.SET_EQUIPPED_ITEM_REMOTE_FUNCTION_NAME))
     self:_addMethod("GetEquipped", Network:GetRemoteFunction(UserDataServiceConstants.GET_EQUIPPED_ITEM_REMOTE_FUNCTION_NAME))
     self:_addMethod("SetSetting", Network:GetRemoteFunction(UserDataServiceConstants.SET_SETTING_REMOTE_FUNCTION_NAME))
@@ -30,6 +31,7 @@ function UserDataClient:Init()
     self:_addMethod("IsFirstTimer", Network:GetRemoteFunction(UserDataServiceConstants.IS_FIRST_TIMER_REMOTE_FUNCTION_NAME))
     self:_addMethod("GetQuestData", Network:GetRemoteFunction(UserDataServiceConstants.GET_QUEST_DATA_REMOTE_FUNCTION_NAME))
     self:_addMethod("GetLevel", Network:GetRemoteFunction(UserDataServiceConstants.GET_LEVEL_REMOTE_FUNCTION_NAME))
+    print("passed all")
 
     self._hasBeatenDungeon = Network:GetRemoteFunction(UserDataServiceConstants.HAS_BEATEN_DUNGEON_REMOTE_FUNCTION_NAME)
 end

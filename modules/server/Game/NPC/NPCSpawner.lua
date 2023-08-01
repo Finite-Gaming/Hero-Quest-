@@ -32,10 +32,16 @@ function NPCSpawner:Init()
     self._pointDict = {}
 
     for _, roomFolder in ipairs(workspace.Rooms:GetChildren()) do
-        local masterPart = roomFolder:FindFirstChild("PatrolPoints")
+        local sectionsFolder = roomFolder:FindFirstChild("Sections")
+        if not sectionsFolder then
+            continue
+        end
+
+        local masterPart = sectionsFolder:FindFirstChild("OriginPart")
         if not masterPart then
             continue
         end
+
         local npcZone = roomFolder.Name
         masterPart.Transparency = 1
         local points = {}
@@ -48,7 +54,7 @@ function NPCSpawner:Init()
             table.insert(points, point)
         end
 
-        self._pointDict[npcZone] = points
+        self._pointDict[masterPart] = points
     end
 end
 
@@ -57,13 +63,19 @@ function NPCSpawner:GetDeadEnemies()
 end
 
 function NPCSpawner:SetupZone(npcZoneName)
-    local masterPart = assert(workspace.Rooms:FindFirstChild(npcZoneName)):FindFirstChild("PatrolPoints")
+    local npcFolder = assert(workspace.Rooms:FindFirstChild(npcZoneName))
+    local sectionsFolder = npcFolder:FindFirstChild("Sections")
+    if not sectionsFolder then
+        return
+    end
+    local masterPart = sectionsFolder:FindFirstChild("OriginPart")
     if not masterPart then
         return
-    end 
-    local spawnTypes = masterPart:FindFirstChild("SpawnTypes")
+    end
+
+    local spawnTypes = npcFolder:FindFirstChild("Enemies")
     if not spawnTypes then
-        warn(("[NPCSpawner] - No SpawnTypes configuration for %q zone!"):format(npcZoneName))
+        warn(("[NPCSpawner] - No Enemies configuration for %q zone!"):format(npcZoneName))
         return
     end
 
@@ -143,7 +155,7 @@ function NPCSpawner:SetupZone(npcZoneName)
 end
 
 function NPCSpawner:_getRandomPoint(masterPart)
-    local points = self._pointDict[masterPart.Parent.Name]
+    local points = self._pointDict[masterPart]
     return points[math.random(1, #points)]
 end
 
@@ -170,16 +182,24 @@ function NPCSpawner:SpawnEnemy(masterPart, npcName)
     end
 
     local _, npcSize = npc:GetBoundingBox()
-    npc:PivotTo(CFrame.new(result.Position + (Vector3.yAxis * npc.Humanoid.HipHeight)))
+    local humanoid = npc.Humanoid
+    npc:PivotTo(CFrame.new(result.Position + (Vector3.yAxis * humanoid.HipHeight)))
 
-    local npcFolder = masterPart.Parent:FindFirstChild("NPC")
+    local zone = masterPart.Parent.Parent
+    local npcFolder = zone:FindFirstChild("NPC")
     if not npcFolder then
         npcFolder = Instance.new("Folder")
         npcFolder.Name = "NPC"
         npcFolder.Parent = masterPart.Parent
     end
 
+    if npc:GetAttribute("HealthBar") then
+        ServerClassBinders.EnemyHealthBar:Bind(npc)
+    end
+
+    npc:SetAttribute("NPCZone", zone.Name)
     npc.Parent = npcFolder
+
     return ServerClassBinders.NPC:BindAsync(npc)
 end
 

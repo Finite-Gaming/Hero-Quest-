@@ -9,6 +9,12 @@ local LobbyInit = {}
 function LobbyInit:Init()
     workspace.Lobby.Assets:Destroy()
 
+    require("ProjectileTypeProvider"):Init()
+    require("ProjectileCacher"):Init()
+    require("ProjectileService"):Init()
+    require("ProjectileHitHandler"):Init()
+
+    require("ServerTemplateProvider"):Init()
     require("ServerClassBinders"):Init()
 
     require("UserDataService"):Init()

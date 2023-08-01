@@ -10,6 +10,7 @@ local AnimationTrack = require("AnimationTrack")
 local VoicelineService = require("VoicelineService")
 local PlayerDamageService = require("PlayerDamageService")
 local CameraShakeService = require("CameraShakeService")
+local HitscanPartService = require("HitscanPartService")
 
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
@@ -31,10 +32,24 @@ function ChargeAttack.new(npc)
     self._hitRadius = 10
 
     self._maid:AddTask(self.AttackPlayed:Connect(function(character)
-        -- move past player
         local rootPart = character:FindFirstChild("HumanoidRootPart")
         if not rootPart then
             return
+        end
+
+        local raycastResult = self:_floorCast()
+        if raycastResult then
+            local pointA = raycastResult.Position
+            local lookVector = CFrame.lookAt(Vector3.new(pointA.X, rootPart.Position.Y, pointA.Z), rootPart.Position).RightVector
+            local pointB = pointA + (lookVector * 128)
+            local distance = (pointA - pointB).Magnitude
+
+            HitscanPartService:Add({
+                BrickColor = BrickColor.new("Persimmon");
+                CFrame = CFrame.lookAt(pointA, pointB) * CFrame.new(-distance/2, 0, 0);
+                Size = Vector3.new(distance, 1, 12);
+                Material = Enum.Material.Neon;
+            }, NumberRange.new(self._damage - 12, self._damage), 2, 0.25)
         end
 
         self._npc.StateChanged:Fire("Charge")
@@ -49,7 +64,7 @@ function ChargeAttack.new(npc)
         self._maid.ObstructionCheck = RunService.Heartbeat:Connect(function()
             local rootCFrame = self._humanoid.RootPart.CFrame
             local obstructionCast = self._raycaster:Cast(rootCFrame.Position, rootCFrame.LookVector * 12)
-            if obstructionCast and obstructionCast.Instance:FindFirstAncestor("Map") then
+            if obstructionCast and obstructionCast.Instance:IsGrounded() --[[and obstructionCast.Instance:FindFirstAncestor("Map") ]]then
                 self:_cancel()
                 self._maid.CheckFallback = nil
 
@@ -68,20 +83,24 @@ function ChargeAttack.new(npc)
                 end))
             end
         end)
-        self._maid.CheckFallback = task.delay(5, function()
+        self._maid.CheckFallback = task.delay(4, function()
             self:_cancel()
         end)
-        self.StartHitscan:Fire()
+        -- self.StartHitscan:Fire()
     end))
 
     return self
+end
+
+function ChargeAttack:_floorCast()
+    return self._raycaster:Cast(self._humanoid.RootPart.Position, -Vector3.yAxis * (self._humanoid.HipHeight + 6))
 end
 
 function ChargeAttack:HandleHit(raycastResult)
     local simHitPos = self._npc._humanoidRootPart.Position
     PlayerDamageService:DamageHitPart(
         raycastResult.Instance,
-        self._damage,
+        0,
         self._npc._obj.Name,
         0.5,
         Vector3.new(simHitPos.X, raycastResult.Instance.Position.Y, simHitPos.Z),

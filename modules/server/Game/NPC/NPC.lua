@@ -24,14 +24,14 @@ local ChargeAttack = require("ChargeAttack")
 local VoicelineService = require("VoicelineService")
 local UserData = require("UserData")
 local EffectPlayerService = require("EffectPlayerService")
-local CleaverTossAttack = require("CleaverTossAttack")
+-- local CleaverTossAttack = require("CleaverTossAttack")
 local PlayerDamageService = require("PlayerDamageService")
 local RandomRange = require("RandomRange")
 local CharacterOverlapParams = require("CharacterOverlapParams")
 local CameraShakeService = require("CameraShakeService")
 local QuestDataUtil = require("QuestDataUtil")
 local UserDataService = require("UserDataService")
-local ModelUtils = require("ModelUtils")
+local TableUtils = require("TableUtils")
 
 local DEBUG_ENABLED = false -- Setting this to true will show debug ray parts, and display the NPC's FOV
 
@@ -41,11 +41,13 @@ local ENEMY_SETTINGS = {
         RunSpeed = 14; -- Speed the NPC will travel when pursuing a player
         PursueAngle = 105; -- The FOV of the NPC's detection range
         PursueRange = 12; -- The max distance a player can be from the NPC to be detected
-        AttackRefresh = 0.3; -- The amount of time waited after an attack
+        AttackRefresh = 0.2; -- The amount of time waited after an attack
         PathingCooldown = 3; -- The amount of time waited between re-pathing when patroling
 
         MinDamage = 10;
         MaxDamage = 20;
+        BaseAttackSpeed = 0.8;
+        AttackSpeedScale = 1;
 
         Attacks = {
             {
@@ -66,6 +68,8 @@ local ENEMY_SETTINGS = {
 
         MinDamage = 14;
         MaxDamage = 30;
+        BaseAttackSpeed = 0.9;
+        AttackSpeedScale = 0.9;
 
         Attacks = {
             {
@@ -86,6 +90,8 @@ local ENEMY_SETTINGS = {
 
         MinDamage = 18;
         MaxDamage = 42;
+        BaseAttackSpeed = 1;
+        AttackSpeedScale = 1;
 
         IsBoss = true;
 
@@ -103,14 +109,14 @@ local ENEMY_SETTINGS = {
             {
                 Class = ChargeAttack;
                 Range = 64;
-                WeaponName = "Hitbox";
+                -- WeaponName = "Hitbox";
             };
-            {
-                Class = CleaverTossAttack;
-                Range = 76;
-                WeaponName = "Axe";
-                SignalAttack = true;
-            };
+            -- {
+            --     Class = CleaverTossAttack;
+            --     Range = 76;
+            --     WeaponName = "Axe";
+            --     SignalAttack = true;
+            -- };
         };
 
         SpecialReward = "WardenBoss";
@@ -123,8 +129,9 @@ NPC.__index = NPC
 function NPC.new(obj)
     local self = setmetatable(BaseObject.new(obj), NPC)
 
-    self._npcZone = self._obj.Parent.Parent.Name
-    self._patrolPointsFolder = workspace.Rooms[self._npcZone].PatrolPoints
+    self._npcZone = self._obj:GetAttribute("NPCZone")
+    self._sectionsFolder = workspace.Rooms[self._npcZone].Sections
+    self._patrolPointsFolder = self._sectionsFolder.OriginPart
     self._patrolPoints = {}
 
     for _, patrolPoint in ipairs(self._patrolPointsFolder:GetChildren()) do
@@ -182,7 +189,7 @@ function NPC.new(obj)
     self._alignOrientation.Parent = self._humanoidRootPart
 
     self._raycaster = Raycaster.new()
-    self._raycaster:Ignore({self._patrolPointsFolder.Parent.NPC, workspace.Terrain})
+    self._raycaster:Ignore({self._sectionsFolder, workspace.Terrain})
     self._raycaster.Visualize = DEBUG_ENABLED
 
     self._attacks = {}
@@ -243,24 +250,38 @@ function NPC.new(obj)
     self._attackRandomRange = RandomRange.new(1, #self._attacks)
     self:_pickRandomAttack()
 
-    self.DamageTracker = ServerClassBinders.DamageTracker:BindAsync(self._humanoid)
-    self._maid:AddTask(self.DamageTracker.Damaged:Connect(function(_, player)
-        self._totalHits += 1
-        if self._totalHits % 3 == 0 then
-            local hitReaction = self._animations.GotHit
-            if hitReaction then
-                if self._playingAttack then
-                    self._playingAttack:Cancel()
-                end
-                self._hitReacting = true
-                hitReaction.TimePosition = math.random(1, 10)/10
-                hitReaction:Play(0.2)
-                hitReaction:AdjustSpeed(0.2)
+    self._attackExtensionScale = self._settings.AttackSpeedScale or 1
+    self._baseAttackSpeed = self._settings.BaseAttackSpeed or 1
 
-                task.delay(0.5, function()
-                    self._hitReacting = false
-                    hitReaction:Stop(0.2)
-                end)
+    self.DamageTracker = ServerClassBinders.DamageTracker:BindAsync(self._humanoid)
+    self._maid:AddTask(self.DamageTracker.Damaged:Connect(function(_, player, _, _, blocked)
+        if blocked then
+            self._animations.BlockHit:Play()
+        else
+            self._totalHits += 1
+            if self._totalHits % 4 == 0 then
+                local hitReaction = self._animations.Stun
+                if hitReaction then
+                    if self._playingAttack then
+                        self._playingAttack:Cancel()
+                    end
+                    self._hitReacting = true
+                    hitReaction.TimePosition = math.random(1, 10)/10
+                    self:_knockback(75, player)
+                    hitReaction:Play(0.2)
+                    hitReaction:AdjustSpeed(0.2)
+    
+                    task.delay(0.5, function()
+                        self._hitReacting = false
+                        hitReaction:Stop(0.2)
+                    end)
+                end
+            else
+                self:_knockback(50, player)
+                local hitReaction = self._animations.Flinch
+                if hitReaction then
+                    hitReaction:Play()
+                end
             end
         end
 
@@ -305,7 +326,7 @@ function NPC.new(obj)
     end
 
     -- Pathfinding
-    self._nodeSpacing = self._patrolPointsFolder:GetAttribute("Spacing")
+    self._nodeSpacing = self._sectionsFolder:GetAttribute("PointsEvery")
     self._maxNodeSpace = math.sqrt(self._nodeSpacing ^ 2 * 2)
 
     self._neighborOffsets = {
@@ -366,21 +387,21 @@ function NPC.new(obj)
             QuestDataUtil.increment(player, "NPCDeath", deathData)
         end
         self.Died:Fire()
-        self._obj:Destroy()
     end))
 
     self._maid:AddTask(self.Died:Connect(function()
-        local BASE_REWARD = 50
+        local BASE_REWARD = self._humanoid.MaxHealth/2.1
         for _, player in pairs(Players:GetPlayers()) do
             local playerLevel = UserDataService:GetLevel(player)
             UserData:AwardCurrency(player.UserId, "XP", BASE_REWARD * (1.015 ^ playerLevel))
-            UserData:AwardCurrency(player.UserId, "Money", BASE_REWARD * (1.01 ^ playerLevel))
+            UserData:AwardCurrency(player.UserId, "Money", BASE_REWARD * (1.005 ^ playerLevel))
         end
         if self._settings.SpecialReward then
             for _, player in ipairs(Players:GetPlayers()) do
                 UserData:GiveSpecialReward(player.UserId, self._settings.SpecialReward)
             end
         end
+        self._obj:Destroy()
     end))
 
     if self._settings.IsBoss then
@@ -464,11 +485,18 @@ function NPC:_updateHealthBar()
     self._healthAccentBar.Size = UDim2.fromScale(self._humanoid.Health/self._humanoid.MaxHealth, 1)
 end
 
+function NPC:_getAttackSpeed()
+    local base = self._baseAttackSpeed
+    local speed = base + (((base * self._attackExtensionScale)) * (1 - (self._humanoid.Health/self._humanoid.MaxHealth)))
+
+    return speed
+end
+
 function NPC:_attack(character)
     local attack = self._nextAttack.Class
     self._playingAttack = attack
     self:_pickRandomAttack()
-    attack:Play(character).Stopped:Wait()
+    attack:Play(character, self:_getAttackSpeed()).Stopped:Wait()
     return attack.GetHitDebounce and attack:GetHitDebounce() or 0
 end
 
@@ -570,6 +598,22 @@ function NPC:_pathfind(startPoint, goalPoint)
             end
         end
     end
+end
+
+function NPC:_knockback(strength, player)
+    local character = player.Character
+    if not character then
+        return
+    end
+
+    local targetRootPart = character:FindFirstChild("HumanoidRootPart")
+    if not targetRootPart then
+        return
+    end
+
+    local direction = (self._humanoidRootPart.Position - targetRootPart.Position).Unit
+
+    self._humanoidRootPart:ApplyImpulse(direction * strength * self._humanoidRootPart.AssemblyMass)
 end
 
 function NPC:_canSeeNode(pos, node)
@@ -674,6 +718,7 @@ function NPC:_startPursuit(character)
 
     if self._animations.Scared then
         if ProgressionHelper:IsLevelMaxed() then
+            self._humanoid:SetAttribute("BlockRate", nil)
             self.StateChanged:Fire("Scared")
             local rootPart = humanoid.RootPart
             if not rootPart then

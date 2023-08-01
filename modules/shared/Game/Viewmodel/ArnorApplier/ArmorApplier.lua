@@ -62,9 +62,8 @@ function ArmorApplier:ApplyArmor(character, armorSet, setKey)
     self:UpdateStats(character)
 
     for _, armorPiece in ipairs(armorModel:GetChildren()) do
-        local limbPiece = self:_applyToLimb(character, armorPiece)
+        local limbPiece = self:_applyToLimb(character, armorPiece, setKey)
         limbPiece:SetAttribute("ArmorPiece", true)
-        limbPiece:SetAttribute("SetKey", setKey)
     end
 
     armorModel:Destroy()
@@ -79,13 +78,12 @@ function ArmorApplier:ApplyHelmet(character, helmetName, setKey)
     character:SetAttribute("Helmet", helmetName)
     self:UpdateStats(character)
 
-    local limbPiece = self:_applyToLimb(character, helmetModel.Head)
+    local limbPiece = self:_applyToLimb(character, helmetModel.Head, setKey)
     limbPiece:SetAttribute("HelmetPiece", true)
-    limbPiece:SetAttribute("SetKey", setKey)
     helmetModel:Destroy()
 end
 
-function ArmorApplier:_applyToLimb(character, armorPiece)
+function ArmorApplier:_applyToLimb(character, armorPiece, setKey)
     local limb = character:FindFirstChild(armorPiece.Name)
     if not limb then
         warn(("[ArmorApplier] - Could not find limb for %q")
@@ -121,8 +119,22 @@ function ArmorApplier:_applyToLimb(character, armorPiece)
         self:_processPart(part)
     end
 
-    armorPiece:PivotTo(limb:GetPivot())
-    WeldUtils.weld(primaryPart, limb)
+    for _, part in ipairs(armorPiece:GetDescendants()) do
+        if not part:IsA("BasePart") then
+            continue
+        end
+
+        self:_processPart(part)
+    end
+
+    if setKey then
+        armorPiece:SetAttribute("SetKey", setKey)
+    end
+
+    local limbPivot = limb:GetPivot()
+    armorPiece:PivotTo(limbPivot)
+    local relative = primaryPart.CFrame:ToObjectSpace(limbPivot)
+    WeldUtils.weld(primaryPart, limb, relative)
     armorPiece.Parent = limb
 
     return armorPiece

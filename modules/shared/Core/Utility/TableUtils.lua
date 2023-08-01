@@ -41,6 +41,18 @@ function TableUtils.shallowCopy(t)
     return copy
 end
 
+function TableUtils.deepCopy(t)
+    local copy = {}
+	for key, value in pairs(t) do
+		if type(value) == "table" then
+			copy[key] = TableUtils.deepCopy(value)
+		else
+			copy[key] = value
+		end
+	end
+	return copy
+end
+
 function TableUtils.shuffle(t)
     local j, temp
 	for i = #t, 1, -1 do

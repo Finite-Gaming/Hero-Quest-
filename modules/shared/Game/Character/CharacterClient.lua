@@ -12,6 +12,8 @@ local SoundPlayer = require("SoundPlayer")
 local Network = require("Network")
 local CameraShakeServiceConstants = require("CameraShakeServiceConstants")
 local UserSettingsClient = require("UserSettingsClient")
+local ClientOverlapParams = require("ClientOverlapParams")
+local WorldTutorialClient = require("WorldTutorialClient")
 
 local Players = game:GetService("Players")
 
@@ -28,6 +30,11 @@ function CharacterClient.new(obj)
     while not localCharacter or localCharacter ~= self._obj do
         localCharacter = Players.LocalPlayer.CharacterAdded:Wait()
     end
+
+    if GameManager:IsLobby() then
+        WorldTutorialClient:Play()
+    end
+    ClientOverlapParams:Add(self._obj)
 
     self._camera = workspace.CurrentCamera
     self._cameraShaker = CameraShaker.new(Enum.RenderPriority.Camera.Value, function(cframe)

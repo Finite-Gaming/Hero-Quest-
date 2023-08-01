@@ -11,6 +11,12 @@ function LobbyInitClient:Init()
     require("UserSettingsClient"):Init()
     require("UserUpgradesClient"):Init()
 
+    require("ProjectileTypeProvider"):Init()
+    require("ProjectileCacher"):Init()
+    require("ProjectileService"):Init()
+    require("ProjectileEffectsClient"):Init()
+
+    require("ClientOverlapParams"):Init()
     require("NPCOverlapParams"):Init()
 
     require("GuiTemplateProvider"):Init()

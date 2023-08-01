@@ -19,7 +19,8 @@ local AttackBase = require("AttackBase")
 local SoundPlayer = require("SoundPlayer")
 local HumanoidLockerService = require("HumanoidLockerService")
 local NPCOverlapParams = require("NPCOverlapParams")
-local GameManager = require("GameManager")
+-- local GameManager = require("GameManager")
+local EffectPlayerClient = require("EffectPlayerClient")
 
 local RunService = game:GetService("RunService")
 
@@ -199,15 +200,15 @@ function MeleeWeaponClient:_tryAttack()
     end
 
     local attackTick = os.clock()
-    if attackTick - self._lastHit < self._attackCooldown then
-        return
-    end
+    -- if attackTick - self._lastHit < self._attackCooldown then
+    --     return
+    -- end
     self._lastHit = attackTick
 
     local attack = self._attacks[1]
-    if attack:IsPlaying() then
-        return
-    end
+    -- if attack:IsPlaying() then
+    --     return
+    -- end
 
     self._remoteEvent:FireServer("Attack")
     self._trail.Enabled = true
@@ -234,6 +235,7 @@ function MeleeWeaponClient:_handleHit(raycastResult)
 
     SoundPlayer:PlaySoundAtPart(raycastResult.Instance, "Armor_Hit_Deep")
     SoundPlayer:PlaySoundAtPart(raycastResult.Instance, "Body_Hit_Deep")
+    EffectPlayerClient:PlayEffect("SwordSlash", raycastResult.Position)
     self:_lockHumanoid(humanoid)
     self._remoteEvent:FireServer("Hit", raycastResult.Instance, raycastResult.Position)
 end

@@ -12,5 +12,13 @@ return {
             AbilityLength = 5;
             Range = 24;
         };
-    }
+    };
+    DashAbility = {
+        Thumbnail = "rbxassetid://14147219640"; -- probably use ItemConstants for this instead
+        Class = "DashAbility";
+
+        BaseStats = {
+            Cooldown = 1.5;
+        };
+    };
 }

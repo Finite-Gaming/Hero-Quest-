@@ -63,7 +63,9 @@ function CharacterHelper:UpdateStats(character)
         playerSpeed += speedModifier
     end
 
+    local oldLVelocity, oldAVelocity = humanoid.RootPart.AssemblyLinearVelocity, humanoid.RootPart.AssemblyAngularVelocity
     character:ScaleTo(BASE_SCALE + (BASE_SCALE * (healthUpgradeLevel/250))) -- TODO: change this?
+    humanoid.RootPart.AssemblyLinearVelocity, humanoid.RootPart.AssemblyAngularVelocity = oldLVelocity, oldAVelocity
 
     local equippedTool = character:FindFirstChildOfClass("Tool")
     local tools = player.Backpack:GetChildren()

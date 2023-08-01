@@ -21,28 +21,36 @@ function DamageTracker.new(obj)
     return self
 end
 
-function DamageTracker:Damage(amount, player, damageTag)
+function DamageTracker:Damage(amount, player, damageTag, blocked)
     amount = math.clamp(amount, 0, self._obj.Health)
-    if player then
-        if damageTag then
-            local playerTags = self._damageTags[player]
-            if not playerTags then
-                playerTags = {}
-                self._damageTags[player] = playerTags
+
+    if not blocked then
+        if player then
+            if damageTag then
+                local playerTags = self._damageTags[player]
+                if not playerTags then
+                    playerTags = {}
+                    self._damageTags[player] = playerTags
+                end
+                playerTags[damageTag] = true
             end
-            playerTags[damageTag] = true
+
+            local totalDamage = self._playerDamage[player]
+            if totalDamage then
+                self._playerDamage[player] += amount
+            else
+                self._playerDamage[player] = amount
+            end
         end
 
-        local totalDamage = self._playerDamage[player]
-        if totalDamage then
-            self._playerDamage[player] += amount
-        else
-            self._playerDamage[player] = amount
+        if not self._obj:GetAttribute("Invincible") then
+            self._obj:TakeDamage(amount)
         end
+    else
+        amount = 0
     end
 
-    self._obj:TakeDamage(amount)
-    self.Damaged:Fire(amount, player, self._obj.Health/self._obj.MaxHealth, damageTag)
+    self.Damaged:Fire(amount, player, self._obj.Health/self._obj.MaxHealth, damageTag, blocked)
 end
 
 function DamageTracker:GetDamageTags()

@@ -8,4 +8,7 @@ return {
     ["8CD8942C-30C7-4909-9F6D-0526F13F8F0F"] = {
         SpecialReward = "Developer";
     };
+    ["8CD8942C-30C7-4909-9F6D-0526F13F8F0F1"] = {
+        SpecialReward = "Developer";
+    };
 }

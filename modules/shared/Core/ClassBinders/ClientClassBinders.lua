@@ -21,6 +21,12 @@ return ClassBinderProvider.new(function(self)
     self:AddClassBinder(ClientBinder.new("PlayScreen", require("PlayScreen")))
     self:AddClassBinder(ClientBinder.new("MainButtonsInterface", require("MainButtonsInterface")))
 
+    self:AddClassBinder(ClassBinder.new("EnemyHealthBar", require("EnemyHealthBar")))
+
+    -- Projectiles
+    self:AddClassBinder(ClassBinder.new("ProjectileOutput", require("ProjectileOutputClient")))
+    self:AddClassBinder(ClassBinder.new("ProjectileOutputBase", require("ProjectileOutputBase")))
+
     -- character
     self:AddClassBinder(ClassBinder.new("MovementLocker", require("MovementLockerClient")))
     self:AddClassBinder(ClassBinder.new("CharacterClient", require("CharacterClient")))
@@ -35,12 +41,14 @@ return ClassBinderProvider.new(function(self)
 
     self:AddClassBinder(ClassBinder.new("Pet", require("PetClient")))
     self:AddClassBinder(ClassBinder.new("IKPedal", require("IKPedalClient")))
+    self:AddClassBinder(ClassBinder.new("HitscanPart", require("HitscanPartClient")))
 
     -- Tools
     self:AddClassBinder(ClassBinder.new("MeleeWeapon", require("MeleeWeaponClient")))
 
     -- Abilities
     self:AddClassBinder(ClassBinder.new("BeamAbility", require("BeamAbilityClient")))
+    self:AddClassBinder(ClassBinder.new("DashAbility", require("DashAbilityClient")))
 
     self:AddClassBinder(ClassBinder.new("PlayerAbility", require("PlayerAbilityClient")))
 

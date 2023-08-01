@@ -36,17 +36,6 @@ local profileReady = Instance.new("BindableEvent")
 local loggedIn = Instance.new("BindableEvent")
 UserData.LoggedIn = Signal.new()
 
-local function deepCopy(original)
-	local copy = {}
-	for k, v in pairs(original) do
-		if type(v) == "table" then
-			v = deepCopy(v)
-		end
-		copy[k] = v
-	end
-	return copy
-end
-
 -- Checks if a user profile exists and returns it without creating any new one
 function UserData:FindLoadedProfile(userId: number)
 	assert(type(userId) == "number", "UserId is not a number.")
@@ -81,6 +70,16 @@ function UserData:FindPlayer(userId)
     end
 end
 
+local function processCurrency(currency)
+	if typeof(currency) == "NumberRange" then
+		return math.random(currency.Min, currency.Max)
+	elseif typeof(currency) == "number" then
+		return currency
+	else
+		return 0
+	end
+end
+
 -- Gives a special reward from the table above (will only provide it once)
 function UserData:GiveSpecialReward(userId, rewardName)
 	local profile = self:WaitForProfile(userId)
@@ -104,23 +103,26 @@ function UserData:GiveSpecialReward(userId, rewardName)
             end
             keyTable[itemType] = tableCopy
         end
-		keyTable.XP, keyTable.Money = reward.XP, reward.Money
 
-        if reward.PromptReward then
+		-- Award money
+		if reward.Money then
+			local money = processCurrency(reward.Money)
+			keyTable.Money = money
+			self:AwardCurrency(userId, "Money", money)
+		end
+		-- Award XP
+		if reward.XP then
+			local xp = processCurrency(reward.XP)
+			keyTable.XP = xp
+			self:AwardCurrency(userId, "XP", xp)
+		end
+
+		if reward.PromptReward then
             local player = self:FindPlayer(userId)
             if player then
                 self._rewardRemoteEvent:FireClient(player, keyTable, reward.RewardHeader)
             end
         end
-
-		-- Award money
-		if reward.Money then
-			self:AwardCurrency(userId, "Money", reward.Money)
-		end
-		-- Award XP
-		if reward.XP then
-			self:AwardCurrency(userId, "XP", reward.XP)
-		end
 
 		print(string.format("Gave user %d special reward %s.", userId, not isTempReward and rewardName or "temp_reward"))
 		-- print("Has weapons:", data.Weapons)
@@ -148,16 +150,15 @@ function UserData:AwardItem(userId, itemType, itemKey, amount)
     assert(amount == amount and amount > 0, "Invalid amount")
     assert(secureOwnedItemTypeKeys[itemType], "Invalid itemType")
     local itemConstants = assert(ItemConstants[itemType][itemKey], "Invalid itemKey")
-    assert(not itemConstants.Stackable and amount == 1, "Item is not stackable, higher quantity than 1 was provided")
 
 	local profile = self:WaitForProfile(userId)
     local itemEntry = profile.Data[itemType][itemKey]
 
     if itemEntry then
-        if itemConstants.Stackable then
-            itemEntry.Quantity += amount
-        else
+        if itemConstants.NotStackable then
             itemEntry.Quantity = 1
+        else
+			itemEntry.Quantity += amount
         end
     else
         profile.Data[itemType][itemKey] = {Quantity = amount}
@@ -356,9 +357,9 @@ function UserData:AppendQuest(userId, difficulty)
 	local classAlignment = PlayerLevelCalculator:GetClassAlignment(upgradeData)
 	local quest = nil
 	if classAlignment == "Living Legend" or classAlignment == "Newbie" then
-		quest = deepCopy(DailyQuestData[TableUtils.getRandomDictKey(DailyQuestData)][difficulty])
+		quest = TableUtils.deepCopy(DailyQuestData[TableUtils.getRandomDictKey(DailyQuestData)][difficulty])
 	else
-		quest = deepCopy(DailyQuestData[classAlignment][difficulty])
+		quest = TableUtils.deepCopy(DailyQuestData[classAlignment][difficulty])
 	end
 
 	quest.Checks = nil
