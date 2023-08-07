@@ -1,6 +1,6 @@
 --- Projectile physics
 -- @classmod ProjectilePhysics
--- @author unknown
+-- @author
 
 local ProjectilePhysics = {}
 ProjectilePhysics.__index = ProjectilePhysics

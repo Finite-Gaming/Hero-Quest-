@@ -10,8 +10,16 @@ local ProjectilePhysics = require("ProjectilePhysics")
 local ProjectileService = require("ProjectileService")
 local StickHitEffect = require("StickHitEffect")
 local Raycaster = require("Raycaster")
-local SoundPlayer = require("SoundPlayer")
+-- local SoundPlayer = require("SoundPlayer")
 local DebugVisualizer = require("DebugVisualizer")
+
+local CollectionService = game:GetService("CollectionService")
+
+-- local BOUNCE_WHITELIST = {
+--     [Enum.Material.Metal] = true;
+--     [Enum.Material.DiamondPlate] = true;
+--     [Enum.Material.ForceField] = true;
+-- }
 
 local GRAVITY_FORCE = Vector3.new(0, -workspace.Gravity, 0)
 local DESTROY_HEIGHT = workspace.FallenPartsDestroyHeight
@@ -19,7 +27,7 @@ local DESTROY_HEIGHT = workspace.FallenPartsDestroyHeight
 local Projectile = setmetatable({}, BaseObject)
 Projectile.__index = Projectile
 
-function Projectile.new(projectileType, physicsData, ignoreObject)
+function Projectile.new(projectileType, physicsData, owner, raycaster)
     local self = setmetatable(
         BaseObject.new(),
         Projectile
@@ -27,20 +35,23 @@ function Projectile.new(projectileType, physicsData, ignoreObject)
 
     self._projectileType = projectileType
     self._physicsData = physicsData
+    self._owner = owner
+
     self._startTick = physicsData.StartTick or workspace:GetServerTimeNow()
     self._physics = ProjectilePhysics.new(nil, self._startTick)
     self._physics:SetData(
         self._startTick,
         physicsData.Position,
         self._physicsData.Direction.Unit * self._projectileType:GetSpeed(),
-        GRAVITY_FORCE
+        if projectileType:HasGravity() then GRAVITY_FORCE else Vector3.zero
     )
 
-    self._raycastParams = RaycastParams.new()
-    self._raycastParams.IgnoreWater = true -- TODO: Remove this but pass through water so we can do splash effects
+    if not raycaster then
+        self._raycastParams = RaycastParams.new()
+        self._raycastParams.IgnoreWater = true
+    end
 
-    self._raycaster = Raycaster.new(self._raycastParams)
-    self._raycaster:Ignore(ignoreObject)
+    self._raycaster = raycaster or Raycaster.new(self._raycastParams)
     -- if game:GetService("RunService"):IsServer() then
     --     self._raycaster.Visualize = true
     -- end
@@ -69,11 +80,6 @@ function Projectile:SetRenderer(projectileRenderer)
 end
 
 function Projectile:Update()
-    if not self._firstUpdate then
-        self._firstUpdate = true
-        return
-    end
-
     local newPos = self._physics.Position
     local result = self._raycaster:Cast(
         self._lastPosition,
@@ -83,7 +89,7 @@ function Projectile:Update()
     if result then
         ProjectileService.Hit:Fire(self, result)
 
-        if self._projectileType:DoesBounce() and self._bouncesLeft > 0 then
+        if self._projectileType:DoesBounce() and CollectionService:HasTag(result.Instance, "ReflectBullet") and self._bouncesLeft > 0 then
             local velocity = self._physics.Velocity
             local reflectedNormal = (velocity.Unit - (2 * velocity.Unit:Dot(result.Normal) * result.Normal))
             self._physics.Velocity =
@@ -92,10 +98,6 @@ function Projectile:Update()
             self._lastPosition = result.Position
             self._physics.Position = result.Position
             self._bouncesLeft -= 1
-
-            if self._bounceSound then
-                SoundPlayer:PlaySoundAtPart(SoundPlayer[self._bounceSound], self._obj)
-            end
 
             -- if game:GetService("RunService"):IsServer() then
             --     DebugVisualizer:LookAtPart(result.Position, result.Position + reflectedNormal, 0.5, 0.05).Parent = workspace.Terrain
@@ -115,6 +117,11 @@ function Projectile:Update()
         self._lastPosition = newPos
         self:_position()
     end
+
+    if not self._firstUpdate then
+        self._firstUpdate = true
+        return
+    end
 end
 
 function Projectile:_position(...)
@@ -125,6 +132,10 @@ end
 
 function Projectile:GetRenderer()
     return self._projectileRenderer
+end
+
+function Projectile:GetOwner()
+    return self._owner
 end
 
 function Projectile:ShouldUpdate()

@@ -6,6 +6,8 @@ local require = require(game:GetService("ReplicatedStorage"):WaitForChild("Compl
 
 local ProjectileService = require("ProjectileService")
 
+local Players = game:GetService("Players")
+
 local ProjectileEffectsClient = {}
 
 function ProjectileEffectsClient:Init()
@@ -20,6 +22,10 @@ function ProjectileEffectsClient:Init()
                 hitEffect.new(raycastResult.Position, raycastResult.Normal, part)
             end
         end
+
+        -- if projectile:GetOwner() == Players.LocalPlayer then
+
+        -- end
     end)
 end
 
