@@ -36,7 +36,7 @@ end
 
 function ProjectileCacher:_makeProjectile(projectileType)
     local projectile = projectileType:GetBuilder()()
-    projectile.Parent = workspace.Terrain
+    projectile.Parent = workspace:WaitForChild("Effects")
     return projectile
 end
 

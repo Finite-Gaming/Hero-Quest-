@@ -30,6 +30,8 @@ end
 function ProjectileRenderer:Position(position, velocity)
     position = position or self._projectilePhysics.Position
     velocity = velocity or self._projectilePhysics.Velocity
+
+    position += velocity.Unit * (self._obj.Size.Z/2)
     local cframe = CFrame.lookAt(position, position + velocity)
 
     self._obj.CFrame = cframe

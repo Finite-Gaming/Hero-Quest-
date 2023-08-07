@@ -9,6 +9,7 @@ local Projectile = require("Projectile")
 local ProjectileService = require("ProjectileService")
 local ProjectileTypeProvider = require("ProjectileTypeProvider")
 local ProjectileRenderer = require("ProjectileRenderer")
+local Raycaster = require("Raycaster")
 
 local ProjectileOutputBase = setmetatable({}, BaseObject)
 ProjectileOutputBase.__index = ProjectileOutputBase
@@ -17,9 +18,24 @@ function ProjectileOutputBase.new(obj)
     local self = setmetatable(BaseObject.new(obj), ProjectileOutputBase)
 
     self._projectileType = ProjectileTypeProvider:Get(self._obj:GetAttribute("ProjectileType"))
-    self._ignoreObject = self._obj:FindFirstChild("IgnoreObject")
 
     return self
+end
+
+function ProjectileOutputBase:Ignore(ignoreObject)
+    if not self._raycaster then
+        self:SetRaycaster(Raycaster.new())
+    end
+
+    self._raycaster:Ignore(ignoreObject)
+end
+
+function ProjectileOutputBase:SetOwner(player)
+    self._owner = player
+end
+
+function ProjectileOutputBase:SetRaycaster(raycaster)
+    self._raycaster = raycaster
 end
 
 function ProjectileOutputBase:Fire(startTick, position, direction)
@@ -27,7 +43,7 @@ function ProjectileOutputBase:Fire(startTick, position, direction)
         Position = position or self._obj.WorldPosition;
         Direction = direction or -self._obj.WorldCFrame.RightVector;
         StartTick = startTick;
-    }, self._ignoreObject and self._ignoreObject.Value)
+    }, self._owner, self._raycaster)
 
     ProjectileService:AddProjectile(projectile)
     return projectile

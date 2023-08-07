@@ -31,6 +31,10 @@ function ProjectileType:DoesStick()
     return self._data.StickToTarget
 end
 
+function ProjectileType:HasGravity()
+    return not self._data.NoGravity
+end
+
 function ProjectileType:DoesBounce()
     return self:GetBounceData() and true or false
 end
@@ -49,6 +53,10 @@ end
 
 function ProjectileType:GetDamageEffects()
     return self._data.DamageEffects
+end
+
+function ProjectileType:GetHitSounds()
+    return self._data.HitSounds
 end
 
 function ProjectileType:GetBounceSound()
