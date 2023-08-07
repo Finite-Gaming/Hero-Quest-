@@ -29,7 +29,13 @@ function EffectPlayerClient:Init()
 end
 
 function EffectPlayerClient:PlayEffect(effectName, position, color)
-    local effect = self._provider:Get(effectName)
+    local effect = nil
+    if typeof(effectName) == "Instance" then
+        effect = effectName:Clone()
+    else
+        effect = self._provider:Get(effectName)
+    end
+
     local maxLifetime = 0
     local maxDelay = 0
 
